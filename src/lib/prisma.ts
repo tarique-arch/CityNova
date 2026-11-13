@@ -6,8 +6,10 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient(): PrismaClient {
-  const tursoUrl = process.env.TURSO_DATABASE_URL;
-  const tursoAuthToken = process.env.TURSO_AUTH_TOKEN;
+  const rawUrl = process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL || '';
+  const tursoUrl = rawUrl.trim().replace(/^["']|["']$/g, '');
+  const rawToken = process.env.TURSO_AUTH_TOKEN || '';
+  const tursoAuthToken = rawToken.trim().replace(/^["']|["']$/g, '');
 
   // When deployed with Turso (libsql:// or https://)
   if (tursoUrl && (tursoUrl.startsWith('libsql:') || tursoUrl.startsWith('https:') || tursoUrl.startsWith('wss:'))) {
