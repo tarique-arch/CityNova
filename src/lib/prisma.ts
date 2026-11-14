@@ -5,13 +5,27 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-function createPrismaClient(): PrismaClient {
-  const rawUrl = process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL || '';
-  const tursoUrl = rawUrl.trim().replace(/^["']|["']$/g, '');
-  const rawToken = process.env.TURSO_AUTH_TOKEN || '';
-  const tursoAuthToken = rawToken.trim().replace(/^["']|["']$/g, '');
+function cleanToken(token?: string): string | undefined {
+  if (!token) return undefined;
+  return token
+    .trim()
+    .replace(/^["']|["']$/g, '')
+    .trim()
+    .replace(/^Bearer\s+/i, '')
+    .replace(/^["']|["']$/g, '')
+    .trim() || undefined;
+}
 
-  // When deployed with Turso (libsql:// or https://)
+function cleanUrl(url?: string): string {
+  if (!url) return '';
+  return url.trim().replace(/^["']|["']$/g, '').trim();
+}
+
+function createPrismaClient(): PrismaClient {
+  const tursoUrl = cleanUrl(process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL);
+  const tursoAuthToken = cleanToken(process.env.TURSO_AUTH_TOKEN);
+
+  // When deployed with Turso (libsql:// or https:// or wss://)
   if (tursoUrl && (tursoUrl.startsWith('libsql:') || tursoUrl.startsWith('https:') || tursoUrl.startsWith('wss:'))) {
     const adapter = new PrismaLibSQL({
       url: tursoUrl,
