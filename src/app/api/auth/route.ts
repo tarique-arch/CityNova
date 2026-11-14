@@ -253,6 +253,9 @@ export async function POST(request: NextRequest) {
     if (message.includes('CITYNOVA_AUTH_SECRET')) {
       return jsonError('Account security is not configured. Set CITYNOVA_AUTH_SECRET on the server.', 503);
     }
+    if (message.includes('HTTP status 400') || message.includes('HTTP status 401')) {
+      return jsonError('Database connection error: Turso authentication failed. Please verify TURSO_AUTH_TOKEN in Vercel project environment variables (check /api/health for diagnostic status).', 500);
+    }
     return jsonError(`Account request failed: ${message}`, 500);
   }
 }
