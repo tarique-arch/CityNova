@@ -249,8 +249,11 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     console.error('Account request failed:', error);
-    if (error instanceof Error && error.message.includes('CITYNOVA_AUTH_SECRET')) return jsonError('Account security is not configured. Set CITYNOVA_AUTH_SECRET on the server.', 503);
-    return jsonError('Could not complete the account request. Please try again.', 500);
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes('CITYNOVA_AUTH_SECRET')) {
+      return jsonError('Account security is not configured. Set CITYNOVA_AUTH_SECRET on the server.', 503);
+    }
+    return jsonError(`Account request failed: ${message}`, 500);
   }
 }
 
