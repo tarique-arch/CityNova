@@ -39,7 +39,7 @@ Choose **Authority** on the login page.
 
 | Name | Username | Phone | Employee ID | Designation
 |---|---|---|---|---|
-| Saksham Pandey | saksham1 | 9259234046 | 823456781239925 | CP
+| Saksham Pandey | saksham1 | 9259234046 | 823456781239925 | Mayor
 
 You can also register a new account from the sign-up page. The numbers above are demo data only.
 
