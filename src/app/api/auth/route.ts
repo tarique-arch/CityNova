@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
   const employeeId = typeof body.employeeId === 'string' ? body.employeeId.trim().toUpperCase() : '';
   if (!/^[a-z0-9_]{3,24}$/.test(username)) return jsonError('Username must be 3-24 characters using letters, numbers, or underscores.', 400);
   if (!phone) return jsonError('Enter a valid 10-digit Indian mobile number.', 400);
-  if (accountType === 'AUTHORITY' && !/^[A-Z0-9][A-Z0-9._/-]{1,39}$/.test(employeeId)) {
+  if (action === 'register' && accountType === 'AUTHORITY' && !/^[A-Z0-9][A-Z0-9._/-]{1,39}$/.test(employeeId)) {
     return jsonError('Enter a valid Employee ID (2-40 letters, numbers, or . _ / -).', 400);
   }
 
@@ -211,14 +211,13 @@ export async function POST(request: NextRequest) {
           username,
           phoneHash: hashCredential(`phone:${phone}`),
           role: accountType,
-          ...(accountType === 'AUTHORITY' ? { employeeId } : {}),
         },
         include: { city: true },
       });
       if (!user || !user.city) {
         recordLoginFailure(rateLimitKeys);
         return jsonError(accountType === 'AUTHORITY'
-          ? 'Username, phone number, or Employee ID did not match an Authority Employee account.'
+          ? 'Username or phone number did not match an Authority Employee account.'
           : 'Username or phone number did not match a Citizen account.', 401);
       }
 

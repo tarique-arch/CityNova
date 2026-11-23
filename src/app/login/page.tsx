@@ -106,13 +106,6 @@ export default function LoginPage() {
     setBusy(true);
     setError('');
 
-    // Check state validity if provided
-    if (form.state && !isValidState) {
-      setError(`"${form.state}" is not a recognized Indian State or Union Territory. Please enter a valid Indian State.`);
-      setBusy(false);
-      return;
-    }
-
     const finalCity = isCustomCity ? customCityText.trim() : form.city.trim();
     if (mode === 'register') {
       if (!form.state.trim() || !isValidState) {
@@ -131,13 +124,22 @@ export default function LoginPage() {
       const response = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: mode === 'register' ? 'register' : 'login',
-          accountType,
-          ...form,
-          state: canonicalState || form.state,
-          city: finalCity || form.city,
-        }),
+        body: JSON.stringify(
+          mode === 'register'
+            ? {
+                action: 'register',
+                accountType,
+                ...form,
+                state: canonicalState || form.state,
+                city: finalCity || form.city,
+              }
+            : {
+                action: 'login',
+                accountType,
+                username: form.username.trim(),
+                phone: form.phone.trim(),
+              }
+        ),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Could not sign in.');
@@ -246,17 +248,17 @@ export default function LoginPage() {
               {mode === 'register' && field('name', 'Full Name', 'text', 'name', 'e.g. Ramesh Kumar')}
               {field('username', 'Username', 'text', 'username', 'e.g. ramesh_k')}
               {field('phone', 'Phone Number', 'tel', 'tel', '10-digit Indian Mobile Number')}
-              {accountType === 'authority' && (
+              {mode === 'register' && accountType === 'authority' && (
                 <>
                   {field('employeeId', 'Employee ID', 'text', 'off', 'e.g. EMP-UP-1029')}
                   <div className="space-y-1.5">
                     <span className="text-xs font-bold text-slate-700 block">
-                      Authority Designation {mode === 'register' && <span className="text-red-500">*</span>}
+                      Authority Designation <span className="text-red-500">*</span>
                     </span>
                     <select
                       value={form.designation}
                       onChange={(e) => setForm((c) => ({ ...c, designation: e.target.value }))}
-                      required={mode === 'register'}
+                      required
                       className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
                     >
                       <option value="">-- Choose Designation --</option>
@@ -276,112 +278,114 @@ export default function LoginPage() {
                 </>
               )}
 
-              {/* STATE & CITY SECTION */}
-              <div className="pt-1">
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-3">
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {/* State Input with Datalist of Indian States & Verification */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[11px] font-bold text-slate-700 block">
-                          State of India {mode === 'register' && <span className="text-red-500">*</span>}
-                        </label>
-                        {isValidState ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            Verified State
-                          </span>
-                        ) : form.state.trim() ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200">
-                            <AlertCircle className="w-3 h-3 text-amber-600" />
-                            Invalid State
-                          </span>
-                        ) : null}
+              {/* STATE & CITY SECTION (Create Account only) */}
+              {mode === 'register' && (
+                <div className="pt-1">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-3.5 space-y-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {/* State Input with Datalist of Indian States & Verification */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold text-slate-700 block">
+                            State of India <span className="text-red-500">*</span>
+                          </label>
+                          {isValidState ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              Verified State
+                            </span>
+                          ) : form.state.trim() ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200">
+                              <AlertCircle className="w-3 h-3 text-amber-600" />
+                              Invalid State
+                            </span>
+                          ) : null}
+                        </div>
+
+                        <input
+                          type="text"
+                          list="indian-states-datalist"
+                          value={form.state}
+                          onChange={(e) => handleStateChange(e.target.value)}
+                          placeholder="Enter any Indian state..."
+                          required
+                          className={`w-full rounded-xl border px-3 py-2 text-xs text-slate-900 bg-white outline-none transition focus:ring-2 ${
+                            isValidState
+                              ? 'border-emerald-400 focus:border-emerald-500 focus:ring-emerald-100'
+                              : form.state.trim()
+                              ? 'border-amber-400 focus:border-amber-500 focus:ring-amber-100'
+                              : 'border-slate-300 focus:border-orange-500 focus:ring-orange-100'
+                          }`}
+                        />
+                        <datalist id="indian-states-datalist">
+                          {INDIAN_STATES.map((state) => (
+                            <option key={state} value={state} />
+                          ))}
+                        </datalist>
                       </div>
 
-                      <input
-                        type="text"
-                        list="indian-states-datalist"
-                        value={form.state}
-                        onChange={(e) => handleStateChange(e.target.value)}
-                        placeholder="Enter any Indian state..."
-                        required={mode === 'register'}
-                        className={`w-full rounded-xl border px-3 py-2 text-xs text-slate-900 bg-white outline-none transition focus:ring-2 ${
-                          isValidState
-                            ? 'border-emerald-400 focus:border-emerald-500 focus:ring-emerald-100'
-                            : form.state.trim()
-                            ? 'border-amber-400 focus:border-amber-500 focus:ring-amber-100'
-                            : 'border-slate-300 focus:border-orange-500 focus:ring-orange-100'
-                        }`}
-                      />
-                      <datalist id="indian-states-datalist">
-                        {INDIAN_STATES.map((state) => (
-                          <option key={state} value={state} />
-                        ))}
-                      </datalist>
-                    </div>
+                      {/* City Dropdown: Populates automatically once state is entered/verified */}
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-bold text-slate-700 block">
+                          City / District <span className="text-red-500">*</span>
+                        </label>
 
-                    {/* City Dropdown: Populates automatically once state is entered/verified */}
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-700 block">
-                        City / District {mode === 'register' && <span className="text-red-500">*</span>}
-                      </label>
-
-                      {isValidState ? (
-                        <select
-                          value={isCustomCity ? '__custom__' : form.city}
-                          onChange={(e) => handleCitySelect(e.target.value)}
-                          required={mode === 'register'}
-                          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
-                        >
-                          <option value="">-- Choose City ({stateCities.length}) --</option>
-                          {stateCities.map((city) => (
-                            <option key={city} value={city}>
-                              {city}
+                        {isValidState ? (
+                          <select
+                            value={isCustomCity ? '__custom__' : form.city}
+                            onChange={(e) => handleCitySelect(e.target.value)}
+                            required
+                            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                          >
+                            <option value="">-- Choose City ({stateCities.length}) --</option>
+                            {stateCities.map((city) => (
+                              <option key={city} value={city}>
+                                {city}
+                              </option>
+                            ))}
+                            <option value="__custom__">➕ Other city in {canonicalState}...</option>
+                          </select>
+                        ) : (
+                          <select
+                            disabled
+                            className="w-full rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs text-slate-400 outline-none cursor-not-allowed"
+                          >
+                            <option>
+                              {form.state.trim() ? 'Enter a valid Indian State first...' : 'Enter state first...'}
                             </option>
-                          ))}
-                          <option value="__custom__">➕ Other city in {canonicalState}...</option>
-                        </select>
-                      ) : (
-                        <select
-                          disabled
-                          className="w-full rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs text-slate-400 outline-none cursor-not-allowed"
-                        >
-                          <option>
-                            {form.state.trim() ? 'Enter a valid Indian State first...' : 'Enter state first...'}
-                          </option>
-                        </select>
-                      )}
+                          </select>
+                        )}
+                      </div>
                     </div>
+
+                    {/* If user picked "Other city in state", show custom text input */}
+                    {isCustomCity && isValidState && (
+                      <div className="pt-1 space-y-1">
+                        <label className="text-[11px] font-bold text-orange-800 block">
+                          Enter town / tehsil in {canonicalState}:
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={customCityText}
+                          onChange={(e) => {
+                            setCustomCityText(e.target.value);
+                            setForm((current) => ({ ...current, city: e.target.value }));
+                          }}
+                          placeholder={`e.g. Specific Nagar Panchayat in ${canonicalState}`}
+                          className="w-full rounded-xl border border-orange-300 bg-white px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
+                        />
+                      </div>
+                    )}
+
+                    {!isValidState && form.state.trim() && (
+                      <p className="text-[11px] text-amber-700 font-medium">
+                        ⚠️ Please enter an official Indian State or UT (e.g. Uttar Pradesh, Maharashtra, Delhi, Goa).
+                      </p>
+                    )}
                   </div>
-
-                  {/* If user picked "Other city in state", show custom text input */}
-                  {isCustomCity && isValidState && (
-                    <div className="pt-1 space-y-1">
-                      <label className="text-[11px] font-bold text-orange-800 block">
-                        Enter town / tehsil in {canonicalState}:
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={customCityText}
-                        onChange={(e) => {
-                          setCustomCityText(e.target.value);
-                          setForm((current) => ({ ...current, city: e.target.value }));
-                        }}
-                        placeholder={`e.g. Specific Nagar Panchayat in ${canonicalState}`}
-                        className="w-full rounded-xl border border-orange-300 bg-white px-3 py-2 text-xs text-slate-900 outline-none transition focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
-                      />
-                    </div>
-                  )}
-
-                  {!isValidState && form.state.trim() && (
-                    <p className="text-[11px] text-amber-700 font-medium">
-                      ⚠️ Please enter an official Indian State or UT (e.g. Uttar Pradesh, Maharashtra, Delhi, Goa).
-                    </p>
-                  )}
                 </div>
-              </div>
+              )}
 
               {error && (
                 <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs font-semibold text-red-700">
@@ -399,7 +403,7 @@ export default function LoginPage() {
             </form>
 
             <p className="mt-5 text-center text-[11px] leading-4 text-slate-400">
-              Citizen sign-in verifies your username and phone for your city jurisdiction.
+              {mode === 'login' ? 'Sign in with your registered username and phone number.' : 'Citizen registration verifies your username and phone for your city jurisdiction.'}
             </p>
           </div>
         </section>
