@@ -7,13 +7,11 @@ import { Locate, Loader2, MapPin, X } from 'lucide-react';
 
 const MAP_TILES = {
   url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-  attribution: 'Tiles &copy; Esri, Maxar, Earthstar Geographics, and the GIS User Community',
   maxZoom: 19,
 };
 
 const MAP_LABELS = {
   url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
-  attribution: 'Labels &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors, and the GIS User Community',
   maxZoom: 19,
 };
 
@@ -154,18 +152,17 @@ export default function CivicMap({
         center: initialCenter,
         zoom: zoom,
         zoomControl: false,
+        attributionControl: false,
         scrollWheelZoom: true,
       });
 
       L.control.zoom({ position: 'topright' }).addTo(map);
 
       L.tileLayer(MAP_TILES.url, {
-        attribution: MAP_TILES.attribution,
         maxZoom: MAP_TILES.maxZoom,
       }).addTo(map);
 
       L.tileLayer(MAP_LABELS.url, {
-        attribution: MAP_LABELS.attribution,
         maxZoom: MAP_LABELS.maxZoom,
       }).addTo(map);
 

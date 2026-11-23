@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Home, PlusCircle, Menu, X, HelpCircle, LogOut, MessageSquare, User } from 'lucide-react';
 import AiCivicChatbot from '@/components/AiCivicChatbot';
-import LanguageSelector from '@/components/LanguageSelector';
 import { useLanguage } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth-context';
 
@@ -137,7 +136,6 @@ export default function Navbar() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-2.5">
-            {showGeneralActions && <LanguageSelector variant="compact" />}
             <button type="button" onClick={() => void logout()} className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50" title="Sign out">
               <LogOut className="h-3.5 w-3.5" /> Sign out
             </button>
@@ -154,13 +152,6 @@ export default function Navbar() {
 
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-2.5">
-            {showGeneralActions && <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">
-                Select Language
-              </span>
-              <LanguageSelector variant="full" />
-            </div>}
-
             <Link
               href="/"
               onClick={() => setMobileMenuOpen(false)}

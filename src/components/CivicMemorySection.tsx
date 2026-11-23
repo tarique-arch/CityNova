@@ -33,7 +33,7 @@ export default function CivicMemorySection({ pastFixes }: CivicMemorySectionProp
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <span>Nearby Past Reports</span>
               <span className="text-[10px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                स्थानिक इतिहास
+                Local History
               </span>
             </h3>
             <p className="text-xs text-slate-600">

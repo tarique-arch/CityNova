@@ -39,43 +39,31 @@ const CATEGORIES = [
     id: 'Pothole & Road Damage',
     icon: '🕳️',
     labelEn: 'Pothole & Road Damage',
-    labelHi: 'सड़क खड्डे एवं क्षति',
-    labelKok: 'रस्त्याचे खड्डे आनी मोडतोड',
   },
   {
     id: 'Water Leakage / Pipe Burst',
     icon: '💧',
     labelEn: 'Water Leak / Pipe Burst',
-    labelHi: 'पानी पाइप लीकेज / बर्स्ट',
-    labelKok: 'उदकाची पाईप गळती',
   },
   {
     id: 'Streetlight Outage',
     icon: '💡',
     labelEn: 'Streetlight Outage',
-    labelHi: 'स्ट्रीट लाइट बंद',
-    labelKok: 'रस्त्यावयले दिवे बंद',
   },
   {
     id: 'Garbage & Waste Accumulation',
     icon: '🗑️',
     labelEn: 'Garbage & Waste Pile',
-    labelHi: 'कचरा एवं सफाई समस्या',
-    labelKok: 'कचरो आनी नितळसाण',
   },
   {
     id: 'Drainage & Sewer Overflow',
     icon: '🌊',
     labelEn: 'Drainage & Sewer Overflow',
-    labelHi: 'नाली / सीवर जाम',
-    labelKok: 'गटारांचे उदक व्हांवप',
   },
   {
     id: 'Illegal Encroachment',
     icon: '🚧',
     labelEn: 'Encroachment / Public Hazard',
-    labelHi: 'अतिक्रमण व बाधा',
-    labelKok: 'बेकायदेशीर अतिक्रमण',
   },
 ];
 
@@ -324,9 +312,7 @@ export default function ReportPage() {
             className="inline-flex items-center gap-1.5 text-slate-600 hover:text-orange-600 font-semibold transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>
-              {language === 'kok' ? 'मुख्या पानाकडे परत' : language === 'hi' ? 'मुख्य पृष्ठ पर वापस' : 'Back to Home'}
-            </span>
+            <span>Back to Home</span>
           </Link>
 
           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-[11px]">
@@ -344,11 +330,7 @@ export default function ReportPage() {
 
             <div className="space-y-2">
               <span className="text-xs uppercase tracking-widest font-black text-emerald-700 block">
-                {language === 'kok'
-                  ? 'तक्रार यशस्वीरित्या नोंदवली'
-                  : language === 'hi'
-                  ? 'शिकायत सफलतापूर्वक दर्ज हुई'
-                  : 'Grievance Registered Successfully'}
+                Grievance Registered Successfully
               </span>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
                 Official Case ID: <span className="text-orange-600">{submittedCaseId}</span>
@@ -406,11 +388,7 @@ export default function ReportPage() {
                 <span>{user?.city?.name || 'Your City'}, {user?.state || user?.city?.state || ''}</span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                {language === 'kok'
-                  ? '१ मिनिटात जन तक्रार नोंदवा'
-                  : language === 'hi'
-                  ? '१ मिनट में जन शिकायत दर्ज करें'
-                  : 'Report a Civic Problem'}
+                Report a Civic Problem
               </h1>
               <p className="text-xs sm:text-sm text-slate-600">
                 Submit a report for {user?.city?.name || 'your city'}. Add a location so your neighbors can find the issue.
@@ -446,13 +424,7 @@ export default function ReportPage() {
                   <span className="w-6 h-6 rounded-full bg-orange-600 text-white flex items-center justify-center text-xs font-bold">
                     1
                   </span>
-                  <span>
-                    {language === 'kok'
-                      ? 'समस्या काय आसा? (समस्येचो प्रकार निवडा)'
-                      : language === 'hi'
-                      ? 'समस्या क्या है? (समस्या का प्रकार चुनें)'
-                      : 'What is the Problem?'}
-                  </span>
+                  <span>What is the Problem?</span>
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
                   Choose a category and describe what needs to be fixed.
@@ -476,7 +448,7 @@ export default function ReportPage() {
                     >
                       <span className="text-xl">{cat.icon}</span>
                       <span className="text-xs font-semibold leading-tight">
-                        {language === 'kok' ? cat.labelKok : language === 'hi' ? cat.labelHi : cat.labelEn}
+                        {cat.labelEn}
                       </span>
                     </button>
                   );
@@ -489,11 +461,7 @@ export default function ReportPage() {
               {/* Description Input */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-700">
-                  {language === 'kok'
-                    ? 'तक्रारीचे विवरण • समस्या काय आसा?'
-                    : language === 'hi'
-                    ? 'समस्या का विवरण • क्या समस्या है? *'
-                    : 'Problem Description *'}
+                  Problem Description *
                 </label>
                 <textarea
                   rows={3}
@@ -507,16 +475,12 @@ export default function ReportPage() {
               {/* Photo Upload (Optional) */}
               <div className="space-y-2 pt-1 border-t border-slate-100">
                 <label className="block text-xs font-bold text-slate-700">
-                  {language === 'kok'
-                    ? 'समस्येचो फोटो जोडा (ऐच्छिक)'
-                    : language === 'hi'
-                    ? 'समस्या का फोटो जोड़ें (ऐच्छिक)'
-                    : 'Attach Photo of Problem (Optional)'}
+                  Attach Photo of Problem (Optional)
                 </label>
                 <div className="flex flex-wrap items-center gap-3">
                   <label className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-slate-300 hover:border-orange-500 text-xs font-semibold text-slate-700 cursor-pointer transition-colors bg-slate-50 hover:bg-orange-50/40">
                     <Camera className="w-4 h-4 text-orange-600" />
-                    <span>{photoFile ? photoFile.name : 'Click / Choose Photo (फोटो लें)'}</span>
+                    <span>{photoFile ? photoFile.name : 'Click / Choose Photo'}</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -556,11 +520,7 @@ export default function ReportPage() {
                     </span>
                     <span className="flex items-center gap-1.5">
                       <MapPin className="w-4 h-4 text-blue-600" />
-                      {language === 'kok'
-                        ? 'शहरांतील ठिकाण'
-                        : language === 'hi'
-                        ? 'शहर में स्थान (Location in the City) *'
-                        : 'Location in the City *'}
+                      Location in the City *
                     </span>
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
@@ -583,11 +543,7 @@ export default function ReportPage() {
               {/* Street Address / Landmark Input */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-700">
-                  {language === 'kok'
-                    ? 'रस्तो, लँडमार्क वा पत्तो *'
-                    : language === 'hi'
-                    ? 'सड़क का नाम, निकटतम लैंडमार्क या पता *'
-                    : 'Street Name, Landmark, or House/Shop No. *'}
+                  Street Name, Landmark, or House/Shop No. *
                 </label>
                 <input
                   type="text"
@@ -720,10 +676,6 @@ export default function ReportPage() {
                       ? 'Account Restricted by Authority'
                       : isSubmitting
                       ? 'Submitting Grievance...'
-                      : language === 'kok'
-                      ? '🚀 तक्रार नोंदवा (Submit Grievance)'
-                      : language === 'hi'
-                      ? '🚀 शिकायत दर्ज करें (Submit Grievance)'
                       : '🚀 Submit Grievance'}
                   </span>
                 </button>

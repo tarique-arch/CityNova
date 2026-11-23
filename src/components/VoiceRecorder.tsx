@@ -334,10 +334,10 @@ export default function VoiceRecorder({
           </div>
           <div>
             <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-              <span>Voice Note Recording &bull; ऑडिओ नोंदणी</span>
+              <span>Voice Note Recording</span>
             </h4>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              Speak in English, Hindi (हिंदी), or Konkani. AI will listen and transcribe your exact words below.
+              Speak clearly into your microphone. AI will listen and transcribe your exact words below.
             </p>
           </div>
         </div>

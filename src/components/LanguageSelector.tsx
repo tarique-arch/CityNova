@@ -45,7 +45,7 @@ export default function LanguageSelector({ variant = 'compact' }: LanguageSelect
       {isOpen && (
         <div className="absolute right-0 mt-1.5 w-48 rounded-xl bg-white shadow-xl border border-slate-200 py-1 z-50 animate-in fade-in zoom-in-95">
           <div className="px-3 py-1.5 border-b border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            Select Language &bull; भाषा निवडा
+            Select Language
           </div>
           {LANGUAGES.map((lang) => (
             <button

@@ -112,26 +112,12 @@ textarea,
   border: none !important;
 }
 
-/* Refined Leaflet Attribution Bar */
+/* Hide Leaflet Attribution & Remarks */
 .leaflet-control-attribution {
-  background: rgba(15, 23, 42, 0.78) !important;
-  color: #94a3b8 !important;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border-top-left-radius: 8px !important;
-  font-size: 9px !important;
-  padding: 2px 8px !important;
-  border-left: 1px solid rgba(255, 255, 255, 0.12);
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.leaflet-control-attribution a {
-  color: #60a5fa !important;
-  text-decoration: none !important;
-}
-
-.leaflet-control-attribution a:hover {
-  text-decoration: underline !important;
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 /* Refined Leaflet Zoom Controls */

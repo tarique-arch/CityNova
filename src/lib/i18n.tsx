@@ -1,8 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 
-export type Language = 'en' | 'hi' | 'kok';
+export type Language = 'en';
 
 export interface LanguageInfo {
   code: Language;
@@ -12,16 +12,15 @@ export interface LanguageInfo {
 }
 
 export const LANGUAGES: LanguageInfo[] = [
-  { code: 'en', label: 'Your language', nativeLabel: 'Your language', flag: '' },
-  { code: 'hi', label: 'Hindi', nativeLabel: 'हिंदी', flag: '🇮🇳' },
+  { code: 'en', label: 'English', nativeLabel: 'English', flag: '' },
 ];
 
 export const translations = {
   // Navigation & General
   nav_brand_title: {
     en: 'CityNova',
-    hi: 'सिटीनोवा',
-    kok: 'सिटीनोव्हा',
+    hi: 'CityNova',
+    kok: 'CityNova',
   },
   nav_tagline: {
     en: 'Civic reporting for your city',
@@ -40,20 +39,20 @@ export const translations = {
   },
   nav_report: {
     en: '+ Report Problem',
-    hi: '+ समस्या दर्ज करें',
-    kok: '+ समस्या नोंदवा',
+    hi: '+ Report Problem',
+    kok: '+ Report Problem',
   },
   nav_ai_assistant: {
     en: 'CityNova Enquiry',
-    hi: 'सिटीनोवा पूछताछ',
-    kok: 'सिटीनोव्हा चवकशी',
+    hi: 'CityNova Enquiry',
+    kok: 'CityNova Enquiry',
   },
 
   // Hero Section
   hero_tag: {
     en: 'GOVERNMENT OF GOA • PONDA MUNICIPAL COUNCIL • CITYNOVA',
-    hi: 'गोवा सरकार • पोंडा नगरपालिका परिषद • सिटीनोवा',
-    kok: 'गोंय सरकार • पोंडा नगरपालिका मंडळ • सिटीनोव्हा',
+    hi: 'GOVERNMENT OF GOA • PONDA MUNICIPAL COUNCIL • CITYNOVA',
+    kok: 'GOVERNMENT OF GOA • PONDA MUNICIPAL COUNCIL • CITYNOVA',
   },
   hero_title_part1: {
     en: 'Civic Issue ',
@@ -62,8 +61,8 @@ export const translations = {
   },
   hero_title_accent: {
     en: 'Reporting',
-    hi: 'रिपोर्टिंग',
-    kok: 'नोंदणी',
+    hi: 'Reporting',
+    kok: 'Reporting',
   },
   hero_title_part2: {
     en: '',
@@ -72,212 +71,212 @@ export const translations = {
   },
   hero_subtitle: {
     en: 'Report local civic problems, browse reported issues on the map, and follow their status.',
-    hi: 'Report local civic problems and follow their status.',
-    kok: 'Report local civic problems and follow their status.',
+    hi: 'Report local civic problems, browse reported issues on the map, and follow their status.',
+    kok: 'Report local civic problems, browse reported issues on the map, and follow their status.',
   },
   quick_topics: {
     en: 'Quick Topics:',
-    hi: 'त्वरित विषय:',
-    kok: 'रोखडे विशय:',
+    hi: 'Quick Topics:',
+    kok: 'Quick Topics:',
   },
   reset_filter: {
     en: 'Reset Filter',
-    hi: 'फ़िल्टर हटाएं',
-    kok: 'फिल्टर काढा',
+    hi: 'Reset Filter',
+    kok: 'Reset Filter',
   },
   btn_report_problem: {
     en: '+ Report Civic Problem',
-    hi: '+ जन समस्या दर्ज करें',
-    kok: '+ नागरीक समस्या नोंदवा',
+    hi: '+ Report Civic Problem',
+    kok: '+ Report Civic Problem',
   },
   btn_ask_copilot: {
     en: 'Ask CityNova Enquiry',
-    hi: 'सिटीनोवा पूछताछ से पूछें',
-    kok: 'सिटीनोव्हा चवकशीक विचारात',
+    hi: 'Ask CityNova Enquiry',
+    kok: 'Ask CityNova Enquiry',
   },
 
   // Stats Cards
   stats_total: {
     en: 'Total Registered',
-    hi: 'कुल दर्ज शिकायतें',
-    kok: 'एकूण नोंदविल्ल्यो',
+    hi: 'Total Registered',
+    kok: 'Total Registered',
   },
   stats_total_sub: {
     en: 'Reported Issues',
-    hi: 'संचयी मामले',
-    kok: 'एकूण प्रकरणां',
+    hi: 'Reported Issues',
+    kok: 'Reported Issues',
   },
   stats_active: {
     en: 'Active Under Work',
-    hi: 'कार्य प्रगति पर',
-    kok: 'काम चालू आसा',
+    hi: 'Active Under Work',
+    kok: 'Active Under Work',
   },
   stats_active_sub: {
     en: 'Currently in progress',
-    hi: 'समय-सीमा उलटी गिनती',
-    kok: 'वेळ-मर्यादा सुरू आसा',
+    hi: 'Currently in progress',
+    kok: 'Currently in progress',
   },
   stats_resolved: {
     en: 'Verified Resolved',
-    hi: 'सत्यापित समाधान',
-    kok: 'तपासणी जावन पुराय',
+    hi: 'Verified Resolved',
+    kok: 'Verified Resolved',
   },
   stats_resolved_sub: {
     en: 'Completed complaints',
-    hi: 'फोटो प्रमाण सहित',
-    kok: 'फोटो पुराव्या सयत',
+    hi: 'Completed complaints',
+    kok: 'Completed complaints',
   },
   stats_sla: {
     en: 'On-time Resolution',
-    hi: 'कानूनी समयबद्धता दर',
-    kok: 'कायदेशीर वेळ पाळप दर',
+    hi: 'On-time Resolution',
+    kok: 'On-time Resolution',
   },
   stats_sla_sub: {
     en: 'For completed complaints',
-    hi: 'निश्चित समाधान अवधि',
-    kok: 'हमी दिल्लो वेळ',
+    hi: 'For completed complaints',
+    kok: 'For completed complaints',
   },
 
   // Tabs
   tab_map: {
     en: 'Map View (GIS & Google Maps)',
-    hi: 'मानचित्र दृश्य (Google Maps)',
-    kok: 'नकाशो (Google Maps)',
+    hi: 'Map View (GIS & Google Maps)',
+    kok: 'Map View (GIS & Google Maps)',
   },
 
   // Filters
   filter_search_placeholder: {
     en: 'Search case, landmark, title...',
-    hi: 'केस नंबर, स्थान, शीर्षक खोजें...',
-    kok: 'केस नंबर, जागो, विशय सोदात...',
+    hi: 'Search case, landmark, title...',
+    kok: 'Search case, landmark, title...',
   },
   filter_all_categories: {
-    en: 'All Categories (सभी श्रेणियां)',
-    hi: 'सभी श्रेणियां',
-    kok: 'सगळ्यो वर्गवार्यो',
+    en: 'All Categories',
+    hi: 'All Categories',
+    kok: 'All Categories',
   },
   filter_all_status: {
-    en: 'All Statuses (सभी स्थितियां)',
-    hi: 'सभी स्थितियां',
-    kok: 'सगळी स्थिती',
+    en: 'All Statuses',
+    hi: 'All Statuses',
+    kok: 'All Statuses',
   },
 
   // Categories
   cat_pothole: {
     en: 'Pothole & Road Damage',
-    hi: 'सड़क गड्ढे एवं क्षति',
-    kok: 'रस्त्याचे चर आनी खड्डे',
+    hi: 'Pothole & Road Damage',
+    kok: 'Pothole & Road Damage',
   },
   cat_water: {
     en: 'Water Leakage / Pipe Burst',
-    hi: 'पानी पाइप लीकेज / फूटना',
-    kok: 'उदकाच्यो नळ्यो गळप / फुटप',
+    hi: 'Water Leakage / Pipe Burst',
+    kok: 'Water Leakage / Pipe Burst',
   },
   cat_streetlight: {
     en: 'Streetlight Outage',
-    hi: 'स्ट्रीटलाइट खराबी / अंधेरा',
-    kok: 'रस्त्यावयले दिवे बंद',
+    hi: 'Streetlight Outage',
+    kok: 'Streetlight Outage',
   },
   cat_garbage: {
     en: 'Garbage & Waste Accumulation',
-    hi: 'कचरा एवं गंदगी का ढेर',
-    kok: 'कचरो आनी घाण एकठांय',
+    hi: 'Garbage & Waste Accumulation',
+    kok: 'Garbage & Waste Accumulation',
   },
   cat_drainage: {
     en: 'Drainage & Sewer Overflow',
-    hi: 'नाली एवं सीवर ओवरफ्लो',
-    kok: 'गटर आनी उदक तुंबप',
+    hi: 'Drainage & Sewer Overflow',
+    kok: 'Drainage & Sewer Overflow',
   },
 
   // Map Controls & Google Maps
   map_google_roadmap: {
     en: 'Google Maps (Roadmap)',
-    hi: 'गूगल मैप्स (सड़क दृश्य)',
-    kok: 'गूगल नकाशो (रस्ते)',
+    hi: 'Google Maps (Roadmap)',
+    kok: 'Google Maps (Roadmap)',
   },
   map_google_satellite: {
     en: 'Google Satellite',
-    hi: 'गूगल उपग्रह (Satellite)',
-    kok: 'गूगल सॅटेलाइट',
+    hi: 'Google Satellite',
+    kok: 'Google Satellite',
   },
   map_google_hybrid: {
     en: 'Google Hybrid',
-    hi: 'गूगल हाइब्रिड (Hybrid)',
-    kok: 'गूगल हायब्रिड',
+    hi: 'Google Hybrid',
+    kok: 'Google Hybrid',
   },
   map_municipal_gis: {
     en: 'Municipal GIS Light',
-    hi: 'नगरपालिका जीआईएस',
-    kok: 'नगरपालिका जीआयएस',
+    hi: 'Municipal GIS Light',
+    kok: 'Municipal GIS Light',
   },
   open_in_google_maps: {
     en: 'Open in Google Maps ↗',
-    hi: 'गूगल मैप्स में देखें ↗',
-    kok: 'गूगल मॅपाचेर पळयात ↗',
+    hi: 'Open in Google Maps ↗',
+    kok: 'Open in Google Maps ↗',
   },
   get_directions_google: {
     en: 'Directions (Google Maps) ↗',
-    hi: 'दिशा-निर्देश (गूगल मैप्स) ↗',
-    kok: 'मार्ग पळयात (गूगल मॅप्स) ↗',
+    hi: 'Directions (Google Maps) ↗',
+    kok: 'Directions (Google Maps) ↗',
   },
 
   // Docket Cards
   reported_by: {
     en: 'Reported by:',
-    hi: 'शिकायतकर्ता:',
-    kok: 'तक्रारदार:',
+    hi: 'Reported by:',
+    kok: 'Reported by:',
   },
   sla_guarantee: {
     en: 'Statutory SLA:',
-    hi: 'कानूनी समय-सीमा:',
-    kok: 'कायदेशीर वेळ-मर्यादा:',
+    hi: 'Statutory SLA:',
+    kok: 'Statutory SLA:',
   },
   confirmed_genuine: {
     en: 'Confirmed Genuine',
-    hi: 'सत्यापित असली',
-    kok: 'खरेपण सिद्ध',
+    hi: 'Confirmed Genuine',
+    kok: 'Confirmed Genuine',
   },
   inspect_full_docket: {
     en: 'Inspect Full Docket',
-    hi: 'पूरा विवरण देखें',
-    kok: 'पुराय म्हायती पळयात',
+    hi: 'Inspect Full Docket',
+    kok: 'Inspect Full Docket',
   },
   share_docket: {
     en: 'Share Link',
-    hi: 'शेयर करें',
-    kok: 'शेअर करात',
+    hi: 'Share Link',
+    kok: 'Share Link',
   },
   copied_toast: {
     en: 'Copied!',
-    hi: 'कॉपी हुआ!',
-    kok: 'कॉपी जालें!',
+    hi: 'Copied!',
+    kok: 'Copied!',
   },
 
   // Reporting Wizard
   step_1_title: {
     en: '1. Tell Us Problem',
-    hi: '१. समस्या बताएं',
-    kok: '१. अडचण सांगात',
+    hi: '1. Tell Us Problem',
+    kok: '1. Tell Us Problem',
   },
   step_2_title: {
     en: '2. Review Details',
-    hi: '२. विवरण जांचें',
-    kok: '२. म्हायती तपासात',
+    hi: '2. Review Details',
+    kok: '2. Review Details',
   },
   step_3_title: {
     en: '3. Pick Location',
-    hi: '३. स्थान चुनें',
-    kok: '३. जागो थारावात',
+    hi: '3. Pick Location',
+    kok: '3. Pick Location',
   },
   step_4_title: {
     en: '4. Confirm & Seal',
-    hi: '४. पुष्टि एवं जमा करें',
-    kok: '४. खात्री आनी दाखल करात',
+    hi: '4. Confirm & Seal',
+    kok: '4. Confirm & Seal',
   },
   report_speech_prompt: {
-    en: 'Speak in English or Hindi using microphone:',
-    hi: 'माइक का उपयोग कर अंग्रेजी या हिंदी में बोलें:',
-    kok: 'मायकाचो वापर करून इंग्रजी वा हिंदींत उलय्यात:',
+    en: 'Speak in English using microphone:',
+    hi: 'Speak in English using microphone:',
+    kok: 'Speak in English using microphone:',
   },
 };
 
@@ -293,33 +292,17 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>('en');
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('citynova_lang') as Language | null;
-      if (saved && (saved === 'en' || saved === 'hi')) {
-        setLanguageState(saved);
-      } else if (saved === 'kok') {
-        setLanguageState('en');
-      }
-    }
-  }, []);
-
   const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('citynova_lang', lang);
-      window.dispatchEvent(new CustomEvent('citynova_lang_changed', { detail: { lang } }));
-    }
+    setLanguageState('en');
   };
 
   const t = (key: keyof typeof translations): string => {
     const item = translations[key];
     if (!item) return key;
-    return item[language] || item['en'] || key;
+    return item['en'] || key;
   };
 
-  const currentLanguageInfo =
-    LANGUAGES.find((l) => l.code === language) || LANGUAGES[0];
+  const currentLanguageInfo = LANGUAGES[0];
 
   return (
     <LanguageContext.Provider
@@ -338,7 +321,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 export function useLanguage() {
   const context = useContext(LanguageContext);
   if (!context) {
-    // Fallback if rendered outside provider
     return {
       language: 'en' as Language,
       setLanguage: () => {},
