@@ -6,7 +6,6 @@ import dynamic from 'next/dynamic';
 import {
   PlusCircle,
   MapPin,
-  HelpCircle,
   Search,
   Filter,
   CheckCircle2,
@@ -184,15 +183,6 @@ export default function HomePage() {
                 </Link>
               )}
 
-              <button
-                type="button"
-                onClick={() => window.dispatchEvent(new CustomEvent('open_ai_civic_chat'))}
-                className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 hover:border-slate-400 text-xs font-bold transition-all shadow-xs hover:shadow cursor-pointer"
-              >
-                <HelpCircle className="w-4 h-4 text-blue-600" />
-                <span>{t('btn_ask_copilot')}</span>
-              </button>
-
               <a
                 href="#city-map"
                 className="hidden sm:inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors text-center"
@@ -204,38 +194,38 @@ export default function HomePage() {
           </div>
 
           {/* CITIZEN PARTICIPATION LIFECYCLE BANNER */}
-          <div className="mt-8 pt-6 border-t border-slate-200/80 grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-700 font-bold text-xs shrink-0 border border-blue-100">
+          <div className="mt-8 pt-6 border-t border-slate-200/80 grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4">
+            <div className="flex items-start gap-3.5 p-4 sm:p-4.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-700 font-black text-sm shrink-0 border border-blue-100">
                 1
               </span>
               <div>
-                <h4 className="text-xs font-bold text-slate-900">Geotag &amp; Submit</h4>
-                <p className="text-[11px] text-slate-500 leading-relaxed">
+                <h4 className="text-sm sm:text-[15px] font-bold text-slate-900 tracking-tight">Geotag &amp; Submit</h4>
+                <p className="text-xs sm:text-[13px] text-slate-600 leading-relaxed mt-1">
                   Snap a photo, add landmarks, and pinpoint exact coordinates on the map.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-50 text-amber-700 font-bold text-xs shrink-0 border border-amber-100">
+            <div className="flex items-start gap-3.5 p-4 sm:p-4.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-700 font-black text-sm shrink-0 border border-amber-100">
                 2
               </span>
               <div>
-                <h4 className="text-xs font-bold text-slate-900">Department Action</h4>
-                <p className="text-[11px] text-slate-500 leading-relaxed">
+                <h4 className="text-sm sm:text-[15px] font-bold text-slate-900 tracking-tight">Department Action</h4>
+                <p className="text-xs sm:text-[13px] text-slate-600 leading-relaxed mt-1">
                   Assigned to the responsible municipal department with SLA resolution tracking.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-start gap-3 p-3.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
-              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 font-bold text-xs shrink-0 border border-emerald-100">
+            <div className="flex items-start gap-3.5 p-4 sm:p-4.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 font-black text-sm shrink-0 border border-emerald-100">
                 3
               </span>
               <div>
-                <h4 className="text-xs font-bold text-slate-900">Citizen Sign-Off</h4>
-                <p className="text-[11px] text-slate-500 leading-relaxed">
+                <h4 className="text-sm sm:text-[15px] font-bold text-slate-900 tracking-tight">Citizen Sign-Off</h4>
+                <p className="text-xs sm:text-[13px] text-slate-600 leading-relaxed mt-1">
                   Inspect after-repair photographic proof before verifying ticket closure.
                 </p>
               </div>

@@ -5,7 +5,6 @@ import {
   Mic,
   Square,
   Volume2,
-  Sparkles,
   RotateCcw,
   CheckCircle2,
   AlertCircle,
@@ -336,9 +335,6 @@ export default function VoiceRecorder({
           <div>
             <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
               <span>Voice Note Recording &bull; ऑडिओ नोंदणी</span>
-              <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded-md bg-purple-100 text-purple-700 border border-purple-200 flex items-center gap-0.5">
-                <Sparkles className="w-2.5 h-2.5" /> AI Speech Detection
-              </span>
             </h4>
             <p className="text-[11px] text-slate-500 mt-0.5">
               Speak in English, Hindi (हिंदी), or Konkani. AI will listen and transcribe your exact words below.

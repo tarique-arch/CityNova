@@ -5,8 +5,9 @@ import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Building2, CircleCheck, CircleHelp, ExternalLink, Lightbulb, Scale, X, PlusCircle, ChevronRight } from 'lucide-react';
+import { Building2, CircleCheck, CircleHelp, ExternalLink, Lightbulb, Scale, X, PlusCircle, ChevronRight, FileText, Clock, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { getStateRtiPortal } from '@/data/state-rti-portals';
 
 export default function Footer() {
   const { user } = useAuth();
@@ -15,9 +16,12 @@ export default function Footer() {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [howOpen, setHowOpen] = useState(false);
   const [rightsOpen, setRightsOpen] = useState(false);
+  const [rtiOpen, setRtiOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const cityName = user?.city?.name || 'Your city';
   const stateName = user?.state || user?.city?.state || '';
+  const citizenState = user?.state || user?.city?.state || (cityName.toLowerCase().includes('ponda') ? 'Goa' : '');
+  const userStateRti = getStateRtiPortal(citizenState);
 
   useEffect(() => {
     setMounted(true);
@@ -25,14 +29,14 @@ export default function Footer() {
 
   // Lock body scroll when any modal is active
   useEffect(() => {
-    if (aboutOpen || howOpen || rightsOpen) {
+    if (aboutOpen || howOpen || rightsOpen || rtiOpen) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => {
         document.body.style.overflow = originalOverflow;
       };
     }
-  }, [aboutOpen, howOpen, rightsOpen]);
+  }, [aboutOpen, howOpen, rightsOpen, rtiOpen]);
 
   const renderModal = (content: React.ReactNode) => {
     if (!mounted || typeof document === 'undefined') return null;
@@ -40,17 +44,18 @@ export default function Footer() {
   };
 
   useEffect(() => {
-    if (!aboutOpen && !howOpen && !rightsOpen) return;
+    if (!aboutOpen && !howOpen && !rightsOpen && !rtiOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setAboutOpen(false);
         setHowOpen(false);
         setRightsOpen(false);
+        setRtiOpen(false);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [aboutOpen, howOpen, rightsOpen]);
+  }, [aboutOpen, howOpen, rightsOpen, rtiOpen]);
 
   return (
     <footer className="mt-auto w-full border-t border-slate-800/80 bg-slate-950 text-slate-300">
@@ -84,20 +89,19 @@ export default function Footer() {
               Citizen Services
             </h4>
             <div className="p-3 sm:p-4 rounded-xl bg-slate-900/90 border border-slate-800/80 shadow-sm">
-              <div className={`grid ${isAuthority ? 'grid-cols-3' : 'grid-cols-4'} gap-2`}>
-                {!isAuthority && (
-                  <Link
-                    href="/report"
-                    className="flex flex-col items-center justify-center p-2 sm:p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/60 hover:border-emerald-500/40 text-center transition-all group hover:scale-105 min-h-[96px]"
-                  >
-                    <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 group-hover:scale-110 transition-transform mb-2 flex items-center justify-center shrink-0">
-                      <PlusCircle className="w-4 h-4" />
-                    </span>
-                    <span className="text-[10px] sm:text-[11px] font-semibold text-slate-200 group-hover:text-white leading-tight">
-                      Report a Problem
-                    </span>
-                  </Link>
-                )}
+              <div className="grid grid-cols-4 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRtiOpen(true)}
+                  className="flex flex-col items-center justify-center p-2 sm:p-2.5 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/60 hover:border-emerald-500/40 text-center transition-all group hover:scale-105 min-h-[96px] cursor-pointer"
+                >
+                  <span className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 group-hover:scale-110 transition-transform mb-2 flex items-center justify-center shrink-0">
+                    <FileText className="w-4 h-4" />
+                  </span>
+                  <span className="text-[10px] sm:text-[11px] font-semibold text-slate-200 group-hover:text-white leading-tight">
+                    RTI Guide
+                  </span>
+                </button>
 
                 <button
                   type="button"
@@ -156,6 +160,93 @@ export default function Footer() {
                 Complaint activity and geotagged civic locations are actively monitored for this jurisdiction.
               </p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* National Emergency & Citizen Helplines */}
+      <div className="border-t border-slate-800/80 bg-slate-900/50 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              National Helplines (Toll-Free &bull; 24x7)
+            </span>
+            <span className="text-[10px] text-slate-500 hidden sm:inline">Emergency &amp; Citizen Assistance</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            <a
+              href="tel:112"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/15 border border-red-500/30 text-red-300 hover:text-white hover:bg-red-500/25 transition-all text-xs font-semibold"
+            >
+              <span className="font-black text-red-400">112</span>
+              <span className="text-[11px] text-slate-300">National Emergency</span>
+            </a>
+
+            <a
+              href="tel:100"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 hover:border-slate-600 text-slate-200 hover:text-white transition-all text-xs font-semibold"
+            >
+              <span className="font-black text-teal-400">100</span>
+              <span className="text-[11px] text-slate-400">Police</span>
+            </a>
+
+            <a
+              href="tel:101"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 hover:border-slate-600 text-slate-200 hover:text-white transition-all text-xs font-semibold"
+            >
+              <span className="font-black text-orange-400">101</span>
+              <span className="text-[11px] text-slate-400">Fire</span>
+            </a>
+
+            <a
+              href="tel:108"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 hover:border-slate-600 text-slate-200 hover:text-white transition-all text-xs font-semibold"
+            >
+              <span className="font-black text-emerald-400">102/108</span>
+              <span className="text-[11px] text-slate-400">Ambulance</span>
+            </a>
+
+            <a
+              href="tel:181"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 hover:border-slate-600 text-slate-200 hover:text-white transition-all text-xs font-semibold"
+            >
+              <span className="font-black text-pink-400">181</span>
+              <span className="text-[11px] text-slate-400">Women</span>
+            </a>
+
+            <a
+              href="tel:1098"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 hover:border-slate-600 text-slate-200 hover:text-white transition-all text-xs font-semibold"
+            >
+              <span className="font-black text-amber-400">1098</span>
+              <span className="text-[11px] text-slate-400">Child</span>
+            </a>
+
+            <a
+              href="tel:1930"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 hover:border-slate-600 text-slate-200 hover:text-white transition-all text-xs font-semibold"
+            >
+              <span className="font-black text-blue-400">1930</span>
+              <span className="text-[11px] text-slate-400">Cyber Fraud</span>
+            </a>
+
+            <a
+              href="tel:1915"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 hover:border-slate-600 text-slate-200 hover:text-white transition-all text-xs font-semibold"
+            >
+              <span className="font-black text-indigo-400">1915</span>
+              <span className="text-[11px] text-slate-400">Consumer</span>
+            </a>
+
+            <a
+              href="tel:1950"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 hover:border-slate-600 text-slate-200 hover:text-white transition-all text-xs font-semibold"
+            >
+              <span className="font-black text-purple-400">1950</span>
+              <span className="text-[11px] text-slate-400">Voter Helpline</span>
+            </a>
           </div>
         </div>
       </div>
@@ -357,6 +448,275 @@ export default function Footer() {
               <button
                 type="button"
                 onClick={() => setRightsOpen(false)}
+                className="rounded-xl bg-slate-100 px-5 py-2.5 font-bold text-slate-700 transition-colors hover:bg-slate-200 cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {rtiOpen && renderModal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-150"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setRtiOpen(false);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rti-guide-title"
+            className="relative z-10 max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 text-slate-900 shadow-2xl sm:p-8"
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-5">
+              <div>
+                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wide text-emerald-800">
+                  <FileText className="h-4 w-4" />Right to Information Act, 2005
+                </span>
+                <h2 id="rti-guide-title" className="mt-3 text-2xl font-black tracking-tight sm:text-3xl text-slate-900">
+                  Right to Information (RTI): Ask the Government, Get Answers
+                </h2>
+                <p className="mt-2 text-sm text-slate-600 sm:text-base leading-relaxed">
+                  The RTI Act, 2005 lets any Indian citizen ask a government body for records and get a reply within a fixed time. <strong>You do not have to give a reason for asking.</strong>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRtiOpen(false)}
+                aria-label="Close RTI Guide"
+                className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-6 py-6 text-sm text-slate-700 sm:text-base leading-relaxed">
+              {/* What you can ask for */}
+              <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-5 sm:p-6 space-y-3">
+                <h3 className="text-base font-bold text-emerald-950 sm:text-lg flex items-center gap-2">
+                  <CircleCheck className="h-5 w-5 text-emerald-600 shrink-0" />
+                  What you can ask for
+                </h3>
+                <p className="text-slate-700">
+                  Records, files, reports, contracts, work orders, expenditure details, inspection notes, and the status of your complaint. For example:
+                </p>
+                <ul className="space-y-2 pt-1">
+                  <li className="flex items-start gap-2.5 rounded-xl bg-white/90 border border-emerald-100 p-3 text-xs sm:text-sm text-slate-800 shadow-2xs">
+                    <span className="text-emerald-600 font-bold text-base leading-none mt-0.5">&bull;</span>
+                    <span>How much was spent on repairing this road, and when?</span>
+                  </li>
+                  <li className="flex items-start gap-2.5 rounded-xl bg-white/90 border border-emerald-100 p-3 text-xs sm:text-sm text-slate-800 shadow-2xs">
+                    <span className="text-emerald-600 font-bold text-base leading-none mt-0.5">&bull;</span>
+                    <span>Who holds the garbage collection contract for my ward?</span>
+                  </li>
+                  <li className="flex items-start gap-2.5 rounded-xl bg-white/90 border border-emerald-100 p-3 text-xs sm:text-sm text-slate-800 shadow-2xs">
+                    <span className="text-emerald-600 font-bold text-base leading-none mt-0.5">&bull;</span>
+                    <span>What action was taken on complaint no. XXXX, and by whom?</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Which office to write to */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6 space-y-2">
+                <h3 className="text-base font-bold text-slate-900 sm:text-lg flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-blue-600 shrink-0" />
+                  Which office to write to
+                </h3>
+                <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
+                  Send your application to the <strong>Public Information Officer (PIO)</strong> of the department that holds the record. Municipal corporations and water boards are state bodies, so your state&apos;s RTI rules decide the fee and portal. Central ministries use{' '}
+                  <a href="https://rtionline.gov.in" target="_blank" rel="noreferrer" className="text-blue-600 hover:underline font-semibold inline-flex items-center gap-1">
+                    rtionline.gov.in <ExternalLink className="h-3.5 w-3.5" />
+                  </a>.
+                </p>
+              </div>
+
+              {/* How to file */}
+              <div className="space-y-3">
+                <h3 className="text-base font-bold text-slate-900 sm:text-lg flex items-center gap-2">
+                  <Lightbulb className="h-5 w-5 text-amber-500 shrink-0" />
+                  How to file
+                </h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-1.5 shadow-2xs">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-900">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-xs font-black">1</span>
+                      Find the PIO
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed pl-8">
+                      Every government office has one. Check the office website or notice board, or ask at the counter.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-1.5 shadow-2xs">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-900">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-xs font-black">2</span>
+                      Write your application
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed pl-8">
+                      Use English, Hindi, or your state&apos;s official language. Give your name, address, and the specific records you want.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-1.5 shadow-2xs">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-900">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-xs font-black">3</span>
+                      Pay the fee
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed pl-8">
+                      The central fee is ₹10. State fees vary, so check your state&apos;s rules. People below the poverty line pay nothing; attach your BPL proof.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-1.5 shadow-2xs">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-900">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-xs font-black">4</span>
+                      Submit it
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed pl-8">
+                      Hand it in and get a stamped receipt, send it by registered or speed post, or file online where the department has a portal.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-1.5 shadow-2xs sm:col-span-2">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-900">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-700 text-xs font-black">5</span>
+                      Keep your proof
+                    </div>
+                    <p className="text-xs text-slate-600 leading-relaxed pl-8">
+                      Save the receipt, postal slip, or registration number. You need it for any appeal.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Time limits Table */}
+              <div className="space-y-3">
+                <h3 className="text-base font-bold text-slate-900 sm:text-lg flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-teal-600 shrink-0" />
+                  Time limits
+                </h3>
+                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs">
+                  <table className="w-full text-left text-xs sm:text-sm">
+                    <thead className="bg-slate-100 text-slate-700 border-b border-slate-200">
+                      <tr>
+                        <th className="py-2.5 px-4 font-bold">Stage</th>
+                        <th className="py-2.5 px-4 font-bold">Deadline</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      <tr className="hover:bg-slate-50/60">
+                        <td className="py-2.5 px-4 font-medium text-slate-900">Reply from the PIO</td>
+                        <td className="py-2.5 px-4 font-semibold text-emerald-700">30 days</td>
+                      </tr>
+                      <tr className="hover:bg-slate-50/60 bg-red-50/40">
+                        <td className="py-2.5 px-4 font-medium text-slate-900">Matter of life or liberty</td>
+                        <td className="py-2.5 px-4 font-bold text-red-600">48 hours</td>
+                      </tr>
+                      <tr className="hover:bg-slate-50/60">
+                        <td className="py-2.5 px-4 font-medium text-slate-900">Filed through an Assistant PIO</td>
+                        <td className="py-2.5 px-4 font-semibold text-slate-700">35 days</td>
+                      </tr>
+                      <tr className="hover:bg-slate-50/60">
+                        <td className="py-2.5 px-4 font-medium text-slate-900">Transfer if sent to the wrong office</td>
+                        <td className="py-2.5 px-4 font-semibold text-slate-700">5 days</td>
+                      </tr>
+                      <tr className="hover:bg-slate-50/60">
+                        <td className="py-2.5 px-4 font-medium text-slate-900">First appeal (your deadline to file)</td>
+                        <td className="py-2.5 px-4 font-semibold text-slate-700">30 days from reply</td>
+                      </tr>
+                      <tr className="hover:bg-slate-50/60">
+                        <td className="py-2.5 px-4 font-medium text-slate-900">Second appeal (your deadline to file)</td>
+                        <td className="py-2.5 px-4 font-semibold text-slate-700">90 days from first appeal order</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* If answer is missing or unsatisfactory */}
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 sm:p-6 space-y-3">
+                <h3 className="text-base font-bold text-amber-950 sm:text-lg flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+                  If the answer is missing or unsatisfactory
+                </h3>
+                <div className="space-y-2.5 text-xs sm:text-sm text-slate-700">
+                  <p>
+                    <strong className="text-slate-900">&bull; First appeal:</strong> to the First Appellate Authority in the same department, within 30 days. It should be decided in 30 days, extendable to 45.
+                  </p>
+                  <p>
+                    <strong className="text-slate-900">&bull; Second appeal:</strong> to the Central or State Information Commission, within 90 days of the first appeal&apos;s decision.
+                  </p>
+                  <p className="rounded-xl border border-amber-300 bg-white/90 p-3 text-amber-900 font-medium shadow-2xs">
+                    <strong>⚖️ Penalty Clause:</strong> The Commission can fine a PIO ₹250 per day, up to ₹25,000, for delay or wrongful refusal without reasonable cause.
+                  </p>
+                </div>
+              </div>
+
+              {/* Useful links */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6 space-y-3">
+                <h3 className="text-base font-bold text-slate-900 sm:text-lg">Useful Portals &amp; Links</h3>
+                <div className="flex flex-wrap items-center gap-3">
+                  <a
+                    href="https://rtionline.gov.in"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm font-bold text-slate-800 hover:text-blue-600 hover:border-blue-400 transition-all shadow-2xs"
+                  >
+                    Central RTI Portal (rtionline.gov.in) <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                  <a
+                    href="https://cic.gov.in"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm font-bold text-slate-800 hover:text-blue-600 hover:border-blue-400 transition-all shadow-2xs"
+                  >
+                    Central Information Commission (cic.gov.in) <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+
+                  {userStateRti && (
+                    <>
+                      <a
+                        href={userStateRti.portalUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm font-bold text-slate-800 hover:text-blue-600 hover:border-blue-400 transition-all shadow-2xs"
+                      >
+                        {userStateRti.portalName} <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                      {userStateRti.sicUrl && userStateRti.sicUrl !== userStateRti.portalUrl && (
+                        <a
+                          href={userStateRti.sicUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-xs sm:text-sm font-bold text-slate-800 hover:text-blue-600 hover:border-blue-400 transition-all shadow-2xs"
+                        >
+                          {userStateRti.sicName} <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                    </>
+                  )}
+                </div>
+                {!userStateRti && (
+                  <p className="text-[11px] text-slate-500">
+                    For State Information Commissions, refer to your state government&apos;s official RTI portal.
+                  </p>
+                )}
+              </div>
+
+              {/* Disclaimer */}
+              <p className="text-xs text-slate-400 italic">
+                This is general information, not legal advice. Last updated November 2026. Check your state&apos;s RTI rules for fees and portals.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5 text-sm">
+              <p className="text-slate-400">{cityName}{stateName ? `, ${stateName}` : ''} &bull; Right to Information</p>
+              <button
+                type="button"
+                onClick={() => setRtiOpen(false)}
                 className="rounded-xl bg-slate-100 px-5 py-2.5 font-bold text-slate-700 transition-colors hover:bg-slate-200 cursor-pointer"
               >
                 Close
