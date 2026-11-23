@@ -2,10 +2,28 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getAuthSession(request);
-    if (!session?.user.cityId || !session.user.city) return NextResponse.json({ error: 'Please sign in to view city statistics.' }, { status: 401 });
+    if (!session?.user.cityId || !session.user.city) {
+      return NextResponse.json({
+        success: false,
+        stats: {
+          city: '',
+          total: 0,
+          open: 0,
+          inProgress: 0,
+          resolved: 0,
+          pendingApproval: 0,
+          disputed: 0,
+          slaComplianceRate: null,
+          avgResolutionHours: null,
+        },
+        error: 'Please sign in to view city statistics.',
+      }, { status: 401 });
+    }
 
     const cityFilter = session.user.city.normalizedKey === 'ponda,goa,india'
       ? { OR: [{ cityId: session.user.cityId }, { cityId: null }] }
@@ -43,6 +61,20 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching city statistics:', error);
-    return NextResponse.json({ error: 'Failed to fetch city statistics.' }, { status: 500 });
+    return NextResponse.json({
+      success: false,
+      stats: {
+        city: '',
+        total: 0,
+        open: 0,
+        inProgress: 0,
+        resolved: 0,
+        pendingApproval: 0,
+        disputed: 0,
+        slaComplianceRate: null,
+        avgResolutionHours: null,
+      },
+      error: 'Failed to fetch city statistics.',
+    }, { status: 200 });
   }
 }

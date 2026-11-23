@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState, use } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   MapPin,
@@ -62,13 +63,12 @@ interface PublicProfile {
   tickets: PublicTicket[];
 }
 
-export default function CitizenPublicProfilePage({
-  params,
-}: {
-  params: Promise<{ username: string }>;
-}) {
-  const { username } = use(params);
-  const cleanUsername = decodeURIComponent(username).replace(/^@/, '').trim();
+export const dynamic = 'force-dynamic';
+
+function CitizenPublicProfileContent() {
+  const params = useParams<{ username?: string }>();
+  const rawUsername = params?.username || '';
+  const cleanUsername = rawUsername ? decodeURIComponent(rawUsername).replace(/^@/, '').trim() : '';
   const { user: currentUser, loading: authLoading } = useAuth();
   const isAuthority = currentUser?.role === 'AUTHORITY';
 
@@ -763,5 +763,22 @@ export default function CitizenPublicProfilePage({
 
       <Footer />
     </div>
+  );
+}
+
+export default function CitizenPublicProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-600">
+          <div className="flex items-center gap-2 bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+            <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs font-bold">Loading citizen profile...</span>
+          </div>
+        </div>
+      }
+    >
+      <CitizenPublicProfileContent />
+    </Suspense>
   );
 }

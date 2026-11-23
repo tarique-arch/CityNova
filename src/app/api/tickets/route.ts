@@ -7,6 +7,8 @@ import { sanitizeTicketForPublic } from '@/lib/privacy';
 import { getAuthSession } from '@/lib/auth';
 import { syncUserCivicScore } from '@/lib/civic-score';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getAuthSession(req);

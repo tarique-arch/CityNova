@@ -1,8 +1,10 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 import {
   PlusCircle,
   MapPin,
@@ -27,7 +29,7 @@ import { useAuth } from '@/lib/auth-context';
 import type { ClickedLocationInfo } from '@/components/CivicMap';
 
 // Dynamically import Leaflet CivicMap to prevent SSR window issues
-const CivicMap = dynamic(() => import('@/components/CivicMap'), {
+const CivicMap = nextDynamic(() => import('@/components/CivicMap'), {
   ssr: false,
   loading: () => (
     <div className="w-full h-96 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-500 border border-slate-200">
