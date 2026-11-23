@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
-import { prisma, getTursoConfig } from '@/lib/prisma';
+import { prisma, getTursoConfig, ensureDatabaseSchema } from '@/lib/prisma';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  await ensureDatabaseSchema();
   const config = getTursoConfig();
   const tokenMasked = config.authToken
     ? `${config.authToken.slice(0, 8)}...${config.authToken.slice(-6)} (length: ${config.authToken.length})`

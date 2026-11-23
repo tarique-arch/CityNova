@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'node:crypto';
 import { hashCredential, normalizePhone, normalizeUsername, createLoginSession, getAuthSession, publicUser, setSessionCookie, clearSessionCookie, SESSION_COOKIE } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { prisma, ensureDatabaseSchema } from '@/lib/prisma';
 import { normalizeIndianState, isIndianState, getKnownCoordinates } from '@/data/india-states-cities';
 
 let geocodeQueue = Promise.resolve();
@@ -107,6 +107,7 @@ async function getOrCreateCity(name: string, state: string) {
 
 export async function GET(request: NextRequest) {
   try {
+    await ensureDatabaseSchema();
     const session = await getAuthSession(request);
     return NextResponse.json({ user: session ? publicUser(session.user) : null });
   } catch {
@@ -115,6 +116,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  await ensureDatabaseSchema();
   let body: Record<string, unknown>;
   try {
     body = await request.json();

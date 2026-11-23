@@ -36,6 +36,10 @@ CREATE TABLE IF NOT EXISTS "User" (
     "banReason" TEXT,
     "bannedAt" DATETIME,
     "bannedBy" TEXT,
+    "isStarred" BOOLEAN NOT NULL DEFAULT false,
+    "starredReason" TEXT,
+    "starredAt" DATETIME,
+    "starredBy" TEXT,
     "role" TEXT NOT NULL DEFAULT 'CITIZEN',
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "User_cityId_fkey" FOREIGN KEY ("cityId") REFERENCES "City" ("id") ON DELETE SET NULL ON UPDATE CASCADE

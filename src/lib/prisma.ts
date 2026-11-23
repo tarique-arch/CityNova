@@ -91,3 +91,41 @@ function createPrismaClient(): PrismaClient {
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+let schemaMigrationPromise: Promise<void> | null = null;
+
+export async function ensureDatabaseSchema() {
+  if (schemaMigrationPromise) return schemaMigrationPromise;
+  schemaMigrationPromise = (async () => {
+    try {
+      const columns = await prisma.$queryRawUnsafe<Array<{ name: string }>>('PRAGMA table_info("User");');
+      const existingColNames = new Set(columns.map((c) => c.name.toLowerCase()));
+
+      const columnDefs: Record<string, string> = {
+        isstarred: 'ALTER TABLE "User" ADD COLUMN "isStarred" BOOLEAN NOT NULL DEFAULT 0;',
+        starredreason: 'ALTER TABLE "User" ADD COLUMN "starredReason" TEXT;',
+        starredat: 'ALTER TABLE "User" ADD COLUMN "starredAt" DATETIME;',
+        starredby: 'ALTER TABLE "User" ADD COLUMN "starredBy" TEXT;',
+        isbanned: 'ALTER TABLE "User" ADD COLUMN "isBanned" BOOLEAN NOT NULL DEFAULT 0;',
+        banreason: 'ALTER TABLE "User" ADD COLUMN "banReason" TEXT;',
+        bannedat: 'ALTER TABLE "User" ADD COLUMN "bannedAt" DATETIME;',
+        bannedby: 'ALTER TABLE "User" ADD COLUMN "bannedBy" TEXT;',
+        civicscore: 'ALTER TABLE "User" ADD COLUMN "civicScore" INTEGER NOT NULL DEFAULT 50;',
+        avatarurl: 'ALTER TABLE "User" ADD COLUMN "avatarUrl" TEXT;',
+        coverurl: 'ALTER TABLE "User" ADD COLUMN "coverUrl" TEXT;',
+      };
+
+      for (const [col, sql] of Object.entries(columnDefs)) {
+        if (!existingColNames.has(col)) {
+          try {
+            await prisma.$executeRawUnsafe(sql);
+          } catch {}
+        }
+      }
+    } catch {}
+  })();
+  return schemaMigrationPromise;
+}
+
+// Eagerly self-heal the database schema on startup for whatever database is deployed
+void ensureDatabaseSchema();
