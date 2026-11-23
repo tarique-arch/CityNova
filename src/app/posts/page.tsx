@@ -2,20 +2,25 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { MapPin, MessageCircle, ThumbsUp, Bookmark, ShieldCheck } from 'lucide-react';
+import { MapPin, MessageCircle, ThumbsUp, Bookmark, ShieldCheck, Pencil, Star } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import CivicScoreBadge from '@/components/CivicScoreBadge';
 import { useAuth } from '@/lib/auth-context';
 
 interface PostComment {
   id: string;
   body: string;
   createdAt: string;
+  authorId?: string;
   authorUsername: string;
   authorName?: string;
   authorAvatarUrl?: string | null;
   authorRole?: string;
   authorDesignation?: string | null;
+  authorCivicScore?: number;
+  authorIsBanned?: boolean;
+  authorIsStarred?: boolean;
 }
 
 interface CityPost {
@@ -27,9 +32,14 @@ interface CityPost {
   status: string;
   addressDescription: string;
   createdAt: string;
+  authorId?: string;
   authorUsername: string;
   authorName?: string;
   authorAvatarUrl?: string | null;
+  authorRole?: string;
+  authorCivicScore?: number;
+  authorIsBanned?: boolean;
+  authorIsStarred?: boolean;
   plusOneCount: number;
   reactedByMe: boolean;
   comments: PostComment[];
@@ -46,6 +56,7 @@ function statusOrder(status: string) {
 export default function PostsPage() {
   const { user, loading: authLoading } = useAuth();
   const canInteract = !authLoading && Boolean(user);
+  const isAuthority = user?.role === 'AUTHORITY';
   const [posts, setPosts] = useState<CityPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -53,6 +64,13 @@ export default function PostsPage() {
   const [reactionBusy, setReactionBusy] = useState<string | null>(null);
   const [commentBusy, setCommentBusy] = useState<string | null>(null);
   const [savedPostIds, setSavedPostIds] = useState<string[]>([]);
+  const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
+  const [expandedAuthors, setExpandedAuthors] = useState<Record<string, boolean>>({});
+  const [expandedCommentAuthors, setExpandedCommentAuthors] = useState<Record<string, boolean>>({});
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingBody, setEditingBody] = useState<string>('');
+  const [editBusy, setEditBusy] = useState<boolean>(false);
+  const [editError, setEditError] = useState<string>('');
 
   useEffect(() => {
     try {
@@ -142,10 +160,69 @@ export default function PostsPage() {
         ? { ...item, comments: [...item.comments, data.comment] }
         : item));
       setDrafts((current) => ({ ...current, [post.id]: '' }));
+      setExpandedComments((current) => ({ ...current, [post.id]: true }));
     } catch (commentError) {
       setError(commentError instanceof Error ? commentError.message : 'Could not post your comment.');
     } finally {
       setCommentBusy(null);
+    }
+  };
+
+  const toggleComments = (postId: string) => {
+    setExpandedComments((current) => ({ ...current, [postId]: !current[postId] }));
+  };
+
+  const toggleAuthor = (postId: string) => {
+    setExpandedAuthors((current) => ({ ...current, [postId]: !current[postId] }));
+  };
+
+  const toggleCommentAuthor = (commentId: string) => {
+    setExpandedCommentAuthors((current) => ({ ...current, [commentId]: !current[commentId] }));
+  };
+
+  const startEditingComment = (comment: PostComment) => {
+    setEditingCommentId(comment.id);
+    setEditingBody(comment.body);
+    setEditError('');
+  };
+
+  const cancelEditingComment = () => {
+    setEditingCommentId(null);
+    setEditingBody('');
+    setEditError('');
+  };
+
+  const saveEditedComment = async (postId: string, commentId: string) => {
+    const trimmed = editingBody.trim();
+    if (!trimmed) return;
+    setEditBusy(true);
+    setEditError('');
+    try {
+      const response = await fetch(`/api/posts/${postId}/comments`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commentId, body: trimmed }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not update comment.');
+      setPosts((current) =>
+        current.map((item) =>
+          item.id === postId
+            ? {
+                ...item,
+                comments: item.comments.map((c) =>
+                  c.id === commentId ? { ...c, body: data.comment.body } : c
+                ),
+              }
+            : item
+        )
+      );
+      setEditingCommentId(null);
+      setEditingBody('');
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Could not update comment.');
+    } finally {
+      setEditBusy(false);
     }
   };
 
@@ -175,25 +252,88 @@ export default function PostsPage() {
             <article key={post.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="space-y-4 p-5 sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden border border-slate-200">
-                      {post.authorAvatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={post.authorAvatarUrl}
-                          alt={post.authorUsername}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span>{(post.authorName || post.authorUsername).slice(0, 2).toUpperCase()}</span>
-                      )}
+                  {isAuthority ? (
+                    /* Municipal Authority view: Click username/avatar to directly open citizen profile (score, date & time hidden) */
+                    <div className="flex items-center gap-3">
+                      <Link
+                        href={`/profile/${post.authorUsername}`}
+                        className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden border border-slate-200 hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer shadow-xs"
+                        title={`Open profile for @${post.authorUsername}`}
+                      >
+                        {post.authorAvatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={post.authorAvatarUrl}
+                            alt={post.authorUsername}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span>{(post.authorName || post.authorUsername).slice(0, 2).toUpperCase()}</span>
+                        )}
+                      </Link>
+                      <div>
+                        <Link
+                          href={`/profile/${post.authorUsername}`}
+                          className="text-sm font-bold text-slate-900 hover:text-blue-600 hover:underline transition-colors inline-flex items-center gap-1 cursor-pointer"
+                          title={`Click to open @${post.authorUsername}'s profile`}
+                        >
+                          <span>@{post.authorUsername}</span>
+                        </Link>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-slate-900">@{post.authorUsername}</p>
-                      <p className="mt-0.5 text-xs text-slate-500">{new Date(post.createdAt).toLocaleString()}</p>
+                  ) : (
+                    /* Citizen view: Click username to toggle civic score, date & time; no profile link */
+                    <div className="flex items-start gap-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleAuthor(post.id)}
+                        className="w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden border border-slate-200 hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer"
+                        title={expandedAuthors[post.id] ? 'Hide civic score, date & time' : 'Click to view civic score, date & time'}
+                      >
+                        {post.authorAvatarUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={post.authorAvatarUrl}
+                            alt={post.authorUsername}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span>{(post.authorName || post.authorUsername).slice(0, 2).toUpperCase()}</span>
+                        )}
+                      </button>
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => toggleAuthor(post.id)}
+                          className="text-sm font-bold text-slate-900 hover:text-blue-600 transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                          title={expandedAuthors[post.id] ? 'Hide civic score, date & time' : 'Click to view civic score, date & time'}
+                        >
+                          <span>@{post.authorUsername}</span>
+                          <span className="text-[10px] text-slate-400">
+                            {expandedAuthors[post.id] ? '▲' : '▼'}
+                          </span>
+                        </button>
+
+                        {expandedAuthors[post.id] && (
+                          <div className="mt-1 flex flex-wrap items-center gap-2 animate-in fade-in duration-150">
+                            <CivicScoreBadge
+                              score={post.authorCivicScore ?? 50}
+                              isBanned={post.authorIsBanned}
+                              size="sm"
+                              hideIcon
+                              hideTierLabel
+                            />
+                            <span className="text-xs text-slate-500">
+                              {new Date(post.createdAt).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{post.status.replaceAll('_', ' ')}</span>
+                  )}
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                    {post.status.toUpperCase() === 'RESOLVED' ? 'CLOSED' : post.status.replaceAll('_', ' ')}
+                  </span>
                 </div>
 
                 <div>
@@ -232,6 +372,20 @@ export default function PostsPage() {
 
                   <button
                     type="button"
+                    onClick={() => toggleComments(post.id)}
+                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-sm font-bold transition-all ${
+                      expandedComments[post.id]
+                        ? 'border-blue-400 bg-blue-50 text-blue-700 shadow-xs'
+                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                    }`}
+                    title={expandedComments[post.id] ? 'Hide comments' : 'Show comments'}
+                  >
+                    <MessageCircle className={`h-4 w-4 ${expandedComments[post.id] ? 'fill-blue-600 text-blue-600' : ''}`} />
+                    <span>{post.comments.length > 0 ? `Comments (${post.comments.length})` : 'Comment'}</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => toggleSavePost(post.id)}
                     className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-sm font-bold transition-all ${
                       savedPostIds.includes(post.id)
@@ -245,60 +399,177 @@ export default function PostsPage() {
                   </button>
                 </div>
 
-                <section className="border-t border-slate-100 pt-4">
-                  <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800"><MessageCircle className="h-4 w-4" />Comments ({post.comments.length})</h3>
-                  {post.comments.length > 0 ? (
-                    <div className="mb-4 space-y-3">
-                      {post.comments.map((comment) => (
-                        <div key={comment.id} className="rounded-xl bg-slate-50 px-3.5 py-3">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-[9px] shrink-0 overflow-hidden border border-slate-200">
-                                {comment.authorAvatarUrl ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={comment.authorAvatarUrl}
-                                    alt={comment.authorName || comment.authorUsername}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <span>{(comment.authorName || comment.authorUsername).slice(0, 2).toUpperCase()}</span>
-                                )}
+                {expandedComments[post.id] && (
+                  <section className="border-t border-slate-100 pt-4">
+                    {post.comments.length > 0 ? (
+                      <div className="mb-4 space-y-3">
+                        {post.comments.map((comment) => {
+                          const isMyComment = canInteract && Boolean(
+                            (user?.id && comment.authorId && comment.authorId === user.id) ||
+                            (user?.username && comment.authorUsername === user.username)
+                          );
+                          const isEditingThis = editingCommentId === comment.id;
+
+                          return (
+                            <div key={comment.id} className="rounded-xl bg-slate-50 px-3.5 py-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  {isAuthority && comment.authorRole !== 'AUTHORITY' ? (
+                                    <Link
+                                      href={`/profile/${comment.authorUsername}`}
+                                      className="w-5 h-5 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-[9px] shrink-0 overflow-hidden border border-slate-200 hover:ring-2 hover:ring-blue-400 transition-all cursor-pointer"
+                                      title={`Open profile for @${comment.authorUsername}`}
+                                    >
+                                      {comment.authorAvatarUrl ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                          src={comment.authorAvatarUrl}
+                                          alt={comment.authorName || comment.authorUsername}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <span>{(comment.authorName || comment.authorUsername).slice(0, 2).toUpperCase()}</span>
+                                      )}
+                                    </Link>
+                                  ) : (
+                                    <div className="w-5 h-5 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-[9px] shrink-0 overflow-hidden border border-slate-200">
+                                      {comment.authorAvatarUrl ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                          src={comment.authorAvatarUrl}
+                                          alt={comment.authorName || comment.authorUsername}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <span>{(comment.authorName || comment.authorUsername).slice(0, 2).toUpperCase()}</span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {comment.authorRole === 'AUTHORITY' ? (
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="text-xs font-black text-slate-900">{comment.authorName || 'Authority Official'}</span>
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 text-blue-900 text-[10px] font-extrabold border border-blue-200">
+                                        <ShieldCheck className="w-3 h-3 text-blue-700" />
+                                        <span>{comment.authorDesignation || 'Authority Official'}</span>
+                                      </span>
+                                    </div>
+                                  ) : isAuthority ? (
+                                    /* Authority viewing a citizen comment: direct link to profile (score, date & time hidden) */
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <Link
+                                        href={`/profile/${comment.authorUsername}`}
+                                        className="text-xs font-bold text-slate-900 hover:text-blue-600 hover:underline transition-colors inline-flex items-center gap-1 cursor-pointer"
+                                        title={`Click to open @${comment.authorUsername}'s profile`}
+                                      >
+                                        <span>@{comment.authorUsername}</span>
+                                      </Link>
+                                    </div>
+                                  ) : (
+                                    /* Citizen viewing a citizen comment: toggle civic score, date & time; no profile link */
+                                    <div>
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleCommentAuthor(comment.id)}
+                                        className="text-xs font-bold text-slate-800 hover:text-blue-600 transition-colors cursor-pointer inline-flex items-center gap-1"
+                                        title={expandedCommentAuthors[comment.id] ? 'Hide civic score, date & time' : 'Click to view civic score, date & time'}
+                                      >
+                                        <span>@{comment.authorUsername}</span>
+                                        <span className="text-[9px] text-slate-400">
+                                          {expandedCommentAuthors[comment.id] ? '▲' : '▼'}
+                                        </span>
+                                      </button>
+
+                                      {expandedCommentAuthors[comment.id] && (
+                                        <div className="mt-1 flex flex-wrap items-center gap-1.5 animate-in fade-in duration-150">
+                                          <CivicScoreBadge
+                                            score={comment.authorCivicScore ?? 50}
+                                            isBanned={comment.authorIsBanned}
+                                            size="sm"
+                                            hideIcon
+                                            hideTierLabel
+                                          />
+                                          <span className="text-[11px] text-slate-500">
+                                            {new Date(comment.createdAt).toLocaleString()}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {comment.authorRole === 'AUTHORITY' && (
+                                    <time className="text-[11px] text-slate-500">{new Date(comment.createdAt).toLocaleString()}</time>
+                                  )}
+                                  {isMyComment && !isEditingThis && (
+                                    <button
+                                      type="button"
+                                      onClick={() => startEditingComment(comment)}
+                                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-blue-600 transition-colors ml-1"
+                                      title="Edit your comment"
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                      <span>Edit</span>
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                              {comment.authorRole === 'AUTHORITY' ? (
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="text-xs font-black text-slate-900">{comment.authorName || 'Authority Official'}</span>
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 text-blue-900 text-[10px] font-extrabold border border-blue-200">
-                                    <ShieldCheck className="w-3 h-3 text-blue-700" />
-                                    <span>{comment.authorDesignation || 'Authority Official'}</span>
-                                  </span>
+
+                              {isEditingThis ? (
+                                <div className="mt-2 space-y-2">
+                                  <textarea
+                                    value={editingBody}
+                                    onChange={(e) => setEditingBody(e.target.value)}
+                                    maxLength={1000}
+                                    rows={2}
+                                    className="w-full rounded-xl border border-slate-300 p-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                                    placeholder="Edit your comment..."
+                                    autoFocus
+                                  />
+                                  {editError && <p className="text-xs font-medium text-red-600">{editError}</p>}
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      disabled={editBusy || !editingBody.trim()}
+                                      onClick={() => void saveEditedComment(post.id, comment.id)}
+                                      className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-50"
+                                    >
+                                      {editBusy ? 'Saving...' : 'Save'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={editBusy}
+                                      onClick={cancelEditingComment}
+                                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
                                 </div>
                               ) : (
-                                <span className="text-xs font-bold text-slate-800">@{comment.authorUsername}</span>
+                                <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{comment.body}</p>
                               )}
                             </div>
-                            <time className="text-[11px] text-slate-500">{new Date(comment.createdAt).toLocaleString()}</time>
-                          </div>
-                          <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{comment.body}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : <p className="mb-4 text-xs text-slate-500">No comments yet.</p>}
+                          );
+                        })}
+                      </div>
+                    ) : <p className="mb-4 text-xs text-slate-500">No comments yet.</p>}
 
-                  {canInteract && <form onSubmit={(event) => void addComment(event, post)} className="flex flex-col gap-2 sm:flex-row">
-                    <input
-                      value={drafts[post.id] ?? ''}
-                      onChange={(event) => setDrafts((current) => ({ ...current, [post.id]: event.target.value }))}
-                      maxLength={1000}
-                      placeholder="Add a comment..."
-                      aria-label={`Comment on ${post.title}`}
-                      className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    />
-                    <button type="submit" disabled={commentBusy === post.id || !(drafts[post.id] ?? '').trim()} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">
-                      {commentBusy === post.id ? 'Posting...' : 'Comment'}
-                    </button>
-                  </form>}
-                </section>
+                    {canInteract && <form onSubmit={(event) => void addComment(event, post)} className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        value={drafts[post.id] ?? ''}
+                        onChange={(event) => setDrafts((current) => ({ ...current, [post.id]: event.target.value }))}
+                        maxLength={1000}
+                        placeholder="Add a comment..."
+                        aria-label={`Comment on ${post.title}`}
+                        className="min-w-0 flex-1 rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      />
+                      <button type="submit" disabled={commentBusy === post.id || !(drafts[post.id] ?? '').trim()} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">
+                        {commentBusy === post.id ? 'Posting...' : 'Comment'}
+                      </button>
+                    </form>}
+                  </section>
+                )}
               </div>
             </article>
           ))}

@@ -32,6 +32,10 @@ model User {
   banReason     String?
   bannedAt      DateTime?
   bannedBy      String?
+  isStarred     Boolean          @default(false)
+  starredReason String?
+  starredAt     DateTime?
+  starredBy     String?
   role          String           @default("CITIZEN")
   sessions      Session[]
   tickets       Ticket[]

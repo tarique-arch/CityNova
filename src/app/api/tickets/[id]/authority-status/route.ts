@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { saveUploadedFile } from '@/lib/storage';
 import { syncUserCivicScore } from '@/lib/civic-score';
 
-const ALLOWED_STATUSES = new Set(['IN_PROGRESS', 'PROVISIONALLY_RESOLVED']);
+const ALLOWED_STATUSES = new Set(['IN_PROGRESS', 'PROVISIONALLY_RESOLVED', 'RESOLVED', 'CLOSED']);
 const MAX_PHOTO_SIZE = 8 * 1024 * 1024;
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -42,17 +42,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       resolutionNotes?: string | null;
     } = { status };
 
-    if (status === 'PROVISIONALLY_RESOLVED') {
+    if (status === 'PROVISIONALLY_RESOLVED' || status === 'RESOLVED' || status === 'CLOSED') {
       const photo = form.get('afterRepairPhoto');
-      if (!(photo instanceof File) || photo.size === 0) {
+      if (status === 'PROVISIONALLY_RESOLVED' && (!(photo instanceof File) || photo.size === 0)) {
         return NextResponse.json({ error: 'Upload the required Stage 2: After Repair image.' }, { status: 400 });
       }
-      if (!photo.type.startsWith('image/') || photo.size > MAX_PHOTO_SIZE) {
-        return NextResponse.json({ error: 'The after-repair proof must be an image no larger than 8 MB.' }, { status: 400 });
+      if (photo instanceof File && photo.size > 0) {
+        if (!photo.type.startsWith('image/') || photo.size > MAX_PHOTO_SIZE) {
+          return NextResponse.json({ error: 'The after-repair proof must be an image no larger than 8 MB.' }, { status: 400 });
+        }
+        update.resolutionPhotoUrl = await saveUploadedFile(photo);
       }
-      update.resolutionPhotoUrl = await saveUploadedFile(photo);
       update.resolutionTimestamp = new Date();
-      update.resolutionNotes = 'After-repair photo proof submitted by an Authority Employee.';
+      update.resolutionNotes = comment || 'After-repair photo proof submitted by an Authority Employee.';
     } else {
       update.resolutionPhotoUrl = null;
       update.resolutionTimestamp = null;

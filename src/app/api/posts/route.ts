@@ -14,6 +14,15 @@ export async function GET(request: NextRequest) {
       ? { OR: [{ cityId: session.user.cityId }, { cityId: null }] }
       : { cityId: session.user.cityId };
 
+    // Fetch starred user IDs safely via raw query so it never conflicts with in-memory Prisma client cache
+    let starredIdSet = new Set<string>();
+    try {
+      const starredRows = await prisma.$queryRawUnsafe<{ id: string }[]>(
+        'SELECT id FROM User WHERE isStarred = 1'
+      );
+      starredIdSet = new Set(starredRows.map((r) => r.id));
+    } catch {}
+
     const tickets = await prisma.ticket.findMany({
       where: cityFilter,
       select: {
@@ -25,7 +34,17 @@ export async function GET(request: NextRequest) {
         status: true,
         addressDescription: true,
         createdAt: true,
-        reporter: { select: { username: true, name: true, avatarUrl: true } },
+        reporter: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            avatarUrl: true,
+            role: true,
+            civicScore: true,
+            isBanned: true,
+          },
+        },
         reactions: {
           where: { userId: session.user.id },
           select: { id: true },
@@ -37,7 +56,19 @@ export async function GET(request: NextRequest) {
             id: true,
             body: true,
             createdAt: true,
-            user: { select: { username: true, name: true, avatarUrl: true, role: true, designation: true } },
+            userId: true,
+            user: {
+              select: {
+                id: true,
+                username: true,
+                name: true,
+                avatarUrl: true,
+                role: true,
+                designation: true,
+                civicScore: true,
+                isBanned: true,
+              },
+            },
           },
         },
       },
@@ -51,23 +82,32 @@ export async function GET(request: NextRequest) {
       title: ticket.title,
       description: ticket.description,
       category: ticket.category,
-      status: ticket.status,
+      status: ticket.status === 'RESOLVED' ? 'CLOSED' : ticket.status,
       addressDescription: ticket.addressDescription ? ticket.addressDescription.replace(/\s*\(Ward\s+\d+\)/gi, '') : '',
       createdAt: ticket.createdAt,
+      authorId: ticket.reporter?.id,
       authorUsername: ticket.reporter?.username || 'citizen',
       authorName: ticket.reporter?.name || 'Citizen',
       authorAvatarUrl: ticket.reporter?.avatarUrl || null,
+      authorRole: ticket.reporter?.role || 'CITIZEN',
+      authorCivicScore: ticket.reporter?.civicScore ?? 50,
+      authorIsBanned: Boolean(ticket.reporter?.isBanned),
+      authorIsStarred: ticket.reporter?.id ? starredIdSet.has(ticket.reporter.id) : false,
       plusOneCount: ticket._count.reactions,
       reactedByMe: ticket.reactions.length > 0,
       comments: ticket.comments.map((comment) => ({
         id: comment.id,
         body: comment.body,
         createdAt: comment.createdAt,
-        authorUsername: comment.user.username || 'citizen',
-        authorName: comment.user.name || 'Citizen',
-        authorAvatarUrl: comment.user.avatarUrl || null,
-        authorRole: comment.user.role,
-        authorDesignation: comment.user.designation || null,
+        authorId: comment.userId,
+        authorUsername: comment.user?.username || 'citizen',
+        authorName: comment.user?.name || 'Citizen',
+        authorAvatarUrl: comment.user?.avatarUrl || null,
+        authorRole: comment.user?.role,
+        authorDesignation: comment.user?.designation || null,
+        authorCivicScore: comment.user?.civicScore ?? 50,
+        authorIsBanned: Boolean(comment.user?.isBanned),
+        authorIsStarred: comment.userId ? starredIdSet.has(comment.userId) : false,
       })),
     }));
 

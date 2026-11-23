@@ -31,6 +31,9 @@ import {
   ShieldAlert,
   Award,
   TrendingUp,
+  MoreVertical,
+  Star,
+  X,
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -80,7 +83,7 @@ type TabType = 'info' | 'complaints' | 'saved';
 export default function ProfilePage() {
   const router = useRouter();
   const { user, loading: authLoading, logout, refresh } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabType>('info');
+  const [activeTab, setActiveTab] = useState<TabType>('complaints');
 
   // Complaints State
   const [tickets, setTickets] = useState<UserTicket[]>([]);
@@ -281,6 +284,217 @@ export default function ProfilePage() {
   const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
   const [profileSaveError, setProfileSaveError] = useState('');
 
+  // Authority Three-Dot Menu & Directories (Ban List & Star List)
+  const [showAuthorityMenu, setShowAuthorityMenu] = useState(false);
+  const authorityMenuRef = React.useRef<HTMLDivElement>(null);
+
+  // Citizen Three-Dot Menu (Civic Score & Trust Credibility)
+  const [showCitizenMenu, setShowCitizenMenu] = useState(false);
+  const citizenMenuRef = React.useRef<HTMLDivElement>(null);
+  const [showCivicScoreModal, setShowCivicScoreModal] = useState(false);
+  const civicScoreModalRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showAuthorityMenu) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (authorityMenuRef.current && !authorityMenuRef.current.contains(event.target as Node)) {
+        setShowAuthorityMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAuthorityMenu]);
+
+  useEffect(() => {
+    if (!showCitizenMenu) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (citizenMenuRef.current && !citizenMenuRef.current.contains(event.target as Node)) {
+        setShowCitizenMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCitizenMenu]);
+
+  useEffect(() => {
+    if (!showCivicScoreModal) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (civicScoreModalRef.current && !civicScoreModalRef.current.contains(event.target as Node)) {
+        setShowCivicScoreModal(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCivicScoreModal]);
+
+  const [showBanListModal, setShowBanListModal] = useState(false);
+  const [showStarListModal, setShowStarListModal] = useState(false);
+
+  interface BannedUserItem {
+    id: string;
+    name: string;
+    username: string;
+    avatarUrl: string | null;
+    civicScore: number;
+    banReason: string | null;
+    bannedAt: string | null;
+    bannedBy: string | null;
+  }
+  const [bannedUsers, setBannedUsers] = useState<BannedUserItem[]>([]);
+  const [banListLoading, setBanListLoading] = useState(false);
+  const [banListError, setBanListError] = useState('');
+  const [quickBanUsername, setQuickBanUsername] = useState('');
+  const [quickBanReason, setQuickBanReason] = useState('');
+  const [banActionBusy, setBanActionBusy] = useState(false);
+
+  interface StarredUserItem {
+    id: string;
+    name: string;
+    username: string;
+    avatarUrl: string | null;
+    civicScore: number;
+    starredReason: string | null;
+    starredAt: string | null;
+    starredBy: string | null;
+  }
+  const [starredUsers, setStarredUsers] = useState<StarredUserItem[]>([]);
+  const [starListLoading, setStarListLoading] = useState(false);
+  const [starListError, setStarListError] = useState('');
+  const [quickStarUsername, setQuickStarUsername] = useState('');
+  const [quickStarReason, setQuickStarReason] = useState('Recognized for reporting genuine, high-quality civic issues.');
+  const [starActionBusy, setStarActionBusy] = useState(false);
+
+  const loadBannedUsers = useCallback(async () => {
+    setBanListLoading(true);
+    setBanListError('');
+    try {
+      const res = await fetch('/api/authority/ban');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load ban list.');
+      setBannedUsers(data.bannedUsers || []);
+    } catch (err) {
+      setBanListError(err instanceof Error ? err.message : 'Failed to load ban list.');
+    } finally {
+      setBanListLoading(false);
+    }
+  }, []);
+
+  const loadStarredUsers = useCallback(async () => {
+    setStarListLoading(true);
+    setStarListError('');
+    try {
+      const res = await fetch('/api/authority/star');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load star list.');
+      setStarredUsers(data.starredUsers || []);
+    } catch (err) {
+      setStarListError(err instanceof Error ? err.message : 'Failed to load star list.');
+    } finally {
+      setStarListLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (showBanListModal) void loadBannedUsers();
+  }, [showBanListModal, loadBannedUsers]);
+
+  useEffect(() => {
+    if (showStarListModal) void loadStarredUsers();
+  }, [showStarListModal, loadStarredUsers]);
+
+  const handleUnban = async (citizenId: string) => {
+    setBanActionBusy(true);
+    try {
+      const res = await fetch('/api/authority/ban', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ citizenId, action: 'UNBAN' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to unban citizen.');
+      await loadBannedUsers();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to unban citizen.');
+    } finally {
+      setBanActionBusy(false);
+    }
+  };
+
+  const handleQuickBan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickBanUsername.trim()) return;
+    setBanActionBusy(true);
+    try {
+      const res = await fetch('/api/authority/ban', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: quickBanUsername.trim(),
+          action: 'BAN',
+          reason: quickBanReason.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to ban citizen.');
+      setQuickBanUsername('');
+      setQuickBanReason('');
+      await loadBannedUsers();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to ban citizen.');
+    } finally {
+      setBanActionBusy(false);
+    }
+  };
+
+  const handleUnstar = async (citizenId: string) => {
+    setStarActionBusy(true);
+    try {
+      const res = await fetch('/api/authority/star', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ citizenId, action: 'UNSTAR' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to remove from star list.');
+      await loadStarredUsers();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to remove from star list.');
+    } finally {
+      setStarActionBusy(false);
+    }
+  };
+
+  const handleQuickStar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickStarUsername.trim()) return;
+    setStarActionBusy(true);
+    try {
+      const res = await fetch('/api/authority/star', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: quickStarUsername.trim(),
+          action: 'STAR',
+          reason: quickStarReason.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to add star citizen.');
+      setQuickStarUsername('');
+      await loadStarredUsers();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to add star citizen.');
+    } finally {
+      setStarActionBusy(false);
+    }
+  };
+
   useEffect(() => {
     if (user?.id) {
       let localExtras: any = {};
@@ -444,7 +658,7 @@ export default function ProfilePage() {
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">
           <Sparkles className="w-3 h-3 text-purple-600" />
-          Pending Sign-off
+          Pending Verification
         </span>
       );
     }
@@ -464,12 +678,15 @@ export default function ProfilePage() {
   };
 
   // Filter complaints
+  const settledTicketsCount = tickets.filter((t) =>
+    ['RESOLVED', 'CLOSED'].includes(t.status.toUpperCase())
+  ).length;
+
   const filteredTickets = tickets.filter((t) => {
     if (complaintFilter === 'ALL') return true;
     if (complaintFilter === 'OPEN') return t.status.toUpperCase() === 'OPEN';
     if (complaintFilter === 'IN_PROGRESS') return ['IN_PROGRESS', 'ASSIGNED'].includes(t.status.toUpperCase());
-    if (complaintFilter === 'PENDING') return t.status.toUpperCase() === 'PROVISIONALLY_RESOLVED';
-    if (complaintFilter === 'RESOLVED') return ['RESOLVED', 'CLOSED'].includes(t.status.toUpperCase());
+    if (complaintFilter === 'RESOLVED') return ['RESOLVED', 'CLOSED', 'PROVISIONALLY_RESOLVED'].includes(t.status.toUpperCase());
     return true;
   });
 
@@ -617,18 +834,103 @@ export default function ProfilePage() {
                 />
               </div>
 
-              {/* Action area on the right: Report Problem and Sign out removed as requested */}
-              {avatarUrl && (
-                <button
-                  type="button"
-                  onClick={handleRemoveAvatar}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-red-50 hover:border-red-200 hover:text-red-700 text-slate-600 font-bold text-xs transition-colors cursor-pointer"
-                  title="Remove custom profile photo"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Remove photo</span>
-                </button>
-              )}
+              {/* Action area on the right */}
+              <div className="flex items-center gap-2">
+                {avatarUrl && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveAvatar}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-red-50 hover:border-red-200 hover:text-red-700 text-slate-600 font-bold text-xs transition-colors cursor-pointer"
+                    title="Remove custom profile photo"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Remove photo</span>
+                  </button>
+                )}
+
+                {isAuthority && (
+                  <div className="relative" ref={authorityMenuRef}>
+                    <button
+                      type="button"
+                      onClick={() => setShowAuthorityMenu((prev) => !prev)}
+                      className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition-all shadow-xs cursor-pointer flex items-center justify-center"
+                      title="Authority Options (Ban & Star Directories)"
+                      aria-label="Authority Options"
+                    >
+                      <MoreVertical className="w-5 h-5 text-slate-700" />
+                    </button>
+
+                    {showAuthorityMenu && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-20 cursor-default"
+                          onClick={() => setShowAuthorityMenu(false)}
+                        />
+                        <div className="absolute right-0 mt-2 w-52 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl z-30 animate-in fade-in zoom-in-95">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAuthorityMenu(false);
+                              setShowBanListModal(true);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-bold text-slate-700 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer"
+                          >
+                            <ShieldAlert className="w-4 h-4 text-red-600" />
+                            <span>View Ban List</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAuthorityMenu(false);
+                              setShowStarListModal(true);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-bold text-slate-700 hover:bg-amber-50 hover:text-amber-800 transition-colors cursor-pointer"
+                          >
+                            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                            <span>View Star List</span>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {!isAuthority && (
+                  <div className="relative" ref={citizenMenuRef}>
+                    <button
+                      type="button"
+                      onClick={() => setShowCitizenMenu((prev) => !prev)}
+                      className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold transition-all shadow-xs cursor-pointer flex items-center justify-center"
+                      title="Citizen Options"
+                      aria-label="Citizen Options"
+                    >
+                      <MoreVertical className="w-5 h-5 text-slate-700" />
+                    </button>
+
+                    {showCitizenMenu && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-20 cursor-default"
+                          onClick={() => setShowCitizenMenu(false)}
+                        />
+                        <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl z-30 animate-in fade-in zoom-in-95">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowCitizenMenu(false);
+                              setShowCivicScoreModal(true);
+                            }}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 transition-colors cursor-pointer"
+                          >
+                            <Award className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>Civic Score & Trust Credibility</span>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {photoError && (
@@ -685,7 +987,9 @@ export default function ProfilePage() {
                   <p className="text-xs font-semibold text-slate-500">
                     {isAuthority ? 'Settlements' : 'My Complaints'}
                   </p>
-                  <p className="text-lg font-black text-slate-900">{tickets.length}</p>
+                  <p className="text-lg font-black text-slate-900">
+                    {isAuthority ? settledTicketsCount : tickets.length}
+                  </p>
                 </div>
               </div>
 
@@ -730,19 +1034,6 @@ export default function ProfilePage() {
         <div className="flex border-b border-slate-200 bg-white rounded-2xl px-3 py-2 shadow-xs gap-2 overflow-x-auto">
           <button
             type="button"
-            onClick={() => setActiveTab('info')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
-              activeTab === 'info'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <UserIcon className="w-4 h-4 text-emerald-400" />
-            <span>Personal Info</span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => setActiveTab('complaints')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'complaints'
@@ -757,7 +1048,7 @@ export default function ProfilePage() {
                 activeTab === 'complaints' ? 'bg-sky-500 text-white' : 'bg-slate-200 text-slate-700'
               }`}
             >
-              {tickets.length}
+              {isAuthority ? settledTicketsCount : tickets.length}
             </span>
           </button>
 
@@ -780,99 +1071,24 @@ export default function ProfilePage() {
               {savedPosts.length}
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('info')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'info'
+                ? 'bg-slate-900 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            <UserIcon className="w-4 h-4 text-emerald-400" />
+            <span>Personal Details</span>
+          </button>
         </div>
 
-        {/* Tab 1: Personal Info */}
+        {/* Tab 3: Personal Details */}
         {activeTab === 'info' && (
           <div className="space-y-6">
-            {!isAuthority && (
-              <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
-                <div className="border-b border-slate-100 pb-5 flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2.5">
-                      <Award className="w-6 h-6 text-emerald-600" />
-                      <h2 className="text-xl sm:text-2xl font-black text-slate-900">Civic Score & Trust Credibility</h2>
-                    </div>
-                    <p className="text-sm text-slate-600 mt-1">
-                      Your score reflects verified civic contributions and municipal repair accountability.
-                    </p>
-                  </div>
-                  <CivicScoreBadge score={user.civicScore ?? 50} isBanned={user.isBanned} size="lg" showDetails />
-                </div>
-
-                {/* Score Progress Meter */}
-                {(() => {
-                  const score = user.isBanned ? 0 : (user.civicScore ?? 50);
-                  const tier = getCivicScoreTier(score, user.isBanned);
-                  const progressPct = user.isBanned ? 0 : Math.min(100, Math.round((score / 500) * 100));
-
-                  return (
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 sm:p-6 space-y-3.5">
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-sm sm:text-base font-extrabold text-slate-900">
-                        <span>Current Credibility Tier: <strong className={tier.badgeText}>{tier.label}</strong> <span className="font-semibold text-slate-500">({tier.trustLevel})</span></span>
-                        <span className="font-black text-slate-900">{score} / 500 Target Points</span>
-                      </div>
-                      <div className="h-3.5 w-full rounded-full bg-slate-200 overflow-hidden">
-                        <div
-                          className={`h-full transition-all duration-500 rounded-full ${
-                            user.isBanned ? 'bg-red-500' : 'bg-emerald-600'
-                          }`}
-                          style={{ width: `${progressPct}%` }}
-                        />
-                      </div>
-                      <p className="text-sm text-slate-700 leading-relaxed font-medium">{tier.description}</p>
-                    </div>
-                  );
-                })()}
-
-                {/* Point Earning Breakdown Rules */}
-                <div className="space-y-4">
-                  <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-600 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-emerald-600" />
-                    How to Improve Your Civic Score
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-                    <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col justify-between space-y-2.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-base font-extrabold text-slate-900">True Civic Reporting</span>
-                        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs sm:text-sm font-black text-blue-800 shrink-0">+10 pts</span>
-                      </div>
-                      <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                        File genuine civic complaints with accurate geo-location and clear photo or audio evidence.
-                      </p>
-                    </div>
-
-                    <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col justify-between space-y-2.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-base font-extrabold text-slate-900">Work Progress Initiated</span>
-                        <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs sm:text-sm font-black text-indigo-800 shrink-0">+15 pts</span>
-                      </div>
-                      <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                        Earn points when municipal engineers assign crew and begin active on-site repairs.
-                      </p>
-                    </div>
-
-                    <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col justify-between space-y-2.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-base font-extrabold text-slate-900">Issue Resolved & Verified</span>
-                        <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs sm:text-sm font-black text-emerald-800 shrink-0">+35 pts</span>
-                      </div>
-                      <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                        Substantially boost your standing when repairs are signed off with after-repair photographic proof.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-red-200/80 bg-red-50/70 p-4 text-xs sm:text-sm text-red-900 flex items-start gap-2.5 leading-relaxed">
-                    <ShieldAlert className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-                    <span>
-                      <strong>Fake / Duplicate Complaint Safeguard:</strong> If residents comment that an issue is fake or duplicate, municipal authorities can ban the reporter. Banned accounts drop to <strong>0 score</strong> and are restricted from filing new reports or comments.
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
             <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
               <div className="border-b border-slate-100 pb-4 mb-6 flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -1220,7 +1436,6 @@ export default function ProfilePage() {
                     { id: 'ALL', label: 'All' },
                     { id: 'OPEN', label: 'Open' },
                     { id: 'IN_PROGRESS', label: 'In Progress' },
-                    { id: 'PENDING', label: 'Sign-off' },
                     { id: 'RESOLVED', label: 'Resolved' },
                   ].map((filter) => (
                     <button
@@ -1336,7 +1551,7 @@ export default function ProfilePage() {
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-xs animate-pulse"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Inspect &amp; Sign Off</span>
+                              <span>Inspect &amp; Verify</span>
                             </Link>
                           )}
                           <Link
@@ -1468,6 +1683,371 @@ export default function ProfilePage() {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Ban List Directory (Authority Exclusive) */}
+        {showBanListModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
+            <div className="w-full max-w-2xl rounded-3xl bg-white p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-2.5 text-red-600">
+                  <ShieldAlert className="w-6 h-6" />
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900">Citizen Ban Directory</h3>
+                    <p className="text-xs text-slate-500">
+                      Manage restricted citizen accounts in your municipal jurisdiction.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowBanListModal(false)}
+                  className="p-1.5 rounded-xl border border-slate-200 text-slate-400 hover:text-slate-700 hover:bg-slate-50 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Quick Ban Form */}
+              <form onSubmit={handleQuickBan} className="rounded-2xl border border-red-200/80 bg-red-50/50 p-4 space-y-3">
+                <p className="text-xs font-black text-red-900 uppercase tracking-wide">
+                  Ban / Restrict Citizen
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <input
+                    type="text"
+                    value={quickBanUsername}
+                    onChange={(e) => setQuickBanUsername(e.target.value)}
+                    placeholder="Citizen username (e.g. vivek1)"
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs outline-none focus:border-red-500"
+                    required
+                  />
+                  <input
+                    type="text"
+                    value={quickBanReason}
+                    onChange={(e) => setQuickBanReason(e.target.value)}
+                    placeholder="Reason (e.g. repeated fake complaints)"
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs outline-none focus:border-red-500"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={banActionBusy || !quickBanUsername.trim()}
+                    className="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer shadow-xs"
+                  >
+                    {banActionBusy ? 'Processing...' : 'Apply Ban'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Banned Citizens List */}
+              <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500">
+                  Currently Banned ({bannedUsers.length})
+                </h4>
+
+                {banListLoading ? (
+                  <div className="py-8 text-center text-xs font-semibold text-slate-500">
+                    Loading ban directory...
+                  </div>
+                ) : banListError ? (
+                  <div className="p-4 rounded-xl bg-red-50 text-xs font-bold text-red-700">
+                    {banListError}
+                  </div>
+                ) : bannedUsers.length === 0 ? (
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50 p-8 text-center text-xs font-medium text-slate-500">
+                    No citizens are currently banned in your jurisdiction.
+                  </div>
+                ) : (
+                  bannedUsers.map((banned) => (
+                    <div
+                      key={banned.id}
+                      className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl border border-slate-200 bg-slate-50/60"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
+                          {banned.avatarUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={banned.avatarUrl} alt={banned.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{(banned.name || banned.username).slice(0, 2).toUpperCase()}</span>
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/profile/${banned.username}`}
+                              className="text-xs font-bold text-slate-900 hover:underline hover:text-blue-600"
+                              title="View citizen profile"
+                            >
+                              @{banned.username}
+                            </Link>
+                            <span className="text-xs font-semibold text-slate-500">({banned.name})</span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-red-100 text-red-800 border border-red-200">
+                              0 pts &bull; Banned
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 mt-0.5">
+                            {banned.banReason || 'Restricted by Municipal Authority.'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={banActionBusy}
+                        onClick={() => handleUnban(banned.id)}
+                        className="rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 cursor-pointer shadow-xs disabled:opacity-50"
+                      >
+                        Unban
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Star List Directory (Authority Exclusive) */}
+        {showStarListModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
+            <div className="w-full max-w-2xl rounded-3xl bg-white p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-2.5 text-amber-500">
+                  <Star className="w-6 h-6 fill-amber-500" />
+                  <div>
+                    <h3 className="text-lg font-black text-slate-900">Star Citizens Directory</h3>
+                    <p className="text-xs text-slate-500">
+                      Citizens recognized for genuine, high-quality, and verifiable civic reporting.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowStarListModal(false)}
+                  className="p-1.5 rounded-xl border border-slate-200 text-slate-400 hover:text-slate-700 hover:bg-slate-50 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Quick Star Form */}
+              <form onSubmit={handleQuickStar} className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4 space-y-3">
+                <p className="text-xs font-black text-amber-900 uppercase tracking-wide">
+                  Save Citizen to Star List
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <input
+                    type="text"
+                    value={quickStarUsername}
+                    onChange={(e) => setQuickStarUsername(e.target.value)}
+                    placeholder="Citizen username (e.g. vivek2)"
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs outline-none focus:border-amber-500"
+                    required
+                  />
+                  <input
+                    type="text"
+                    value={quickStarReason}
+                    onChange={(e) => setQuickStarReason(e.target.value)}
+                    placeholder="Genuine citation (e.g. verified road repair reports)"
+                    className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs outline-none focus:border-amber-500"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={starActionBusy || !quickStarUsername.trim()}
+                    className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-black text-slate-950 hover:bg-amber-600 disabled:opacity-50 cursor-pointer shadow-xs"
+                  >
+                    {starActionBusy ? 'Processing...' : 'Add to Star List'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Starred Citizens List */}
+              <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500">
+                  Star Citizens ({starredUsers.length})
+                </h4>
+
+                {starListLoading ? (
+                  <div className="py-8 text-center text-xs font-semibold text-slate-500">
+                    Loading star directory...
+                  </div>
+                ) : starListError ? (
+                  <div className="p-4 rounded-xl bg-red-50 text-xs font-bold text-red-700">
+                    {starListError}
+                  </div>
+                ) : starredUsers.length === 0 ? (
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50 p-8 text-center text-xs font-medium text-slate-500">
+                    No citizens have been added to the star list yet.
+                  </div>
+                ) : (
+                  starredUsers.map((starred) => (
+                    <div
+                      key={starred.id}
+                      className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl border border-amber-200/80 bg-amber-50/40"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
+                          {starred.avatarUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={starred.avatarUrl} alt={starred.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{(starred.name || starred.username).slice(0, 2).toUpperCase()}</span>
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/profile/${starred.username}`}
+                              className="text-xs font-bold text-slate-900 hover:underline hover:text-blue-600"
+                              title="View citizen profile"
+                            >
+                              @{starred.username}
+                            </Link>
+                            <span className="text-xs font-semibold text-slate-500">({starred.name})</span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
+                              <Star className="w-2.5 h-2.5 fill-amber-500" />
+                              <span>{starred.civicScore} pts</span>
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 mt-0.5">
+                            {starred.starredReason || 'Genuine issue reporter.'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={starActionBusy}
+                        onClick={() => handleUnstar(starred.id)}
+                        className="rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-red-50 hover:text-red-700 cursor-pointer shadow-xs disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Citizen Civic Score & Trust Credibility */}
+        {showCivicScoreModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs overflow-y-auto">
+            <div
+              ref={civicScoreModalRef}
+              className="w-full max-w-3xl rounded-3xl bg-white p-6 sm:p-8 shadow-2xl space-y-6 my-8 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95"
+            >
+              <div className="border-b border-slate-100 pb-5 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <Award className="w-6 h-6 text-emerald-600" />
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900">Civic Score & Trust Credibility</h2>
+                  </div>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Your score reflects verified civic contributions and municipal repair accountability.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <CivicScoreBadge score={user.civicScore ?? 50} isBanned={user.isBanned} size="lg" showDetails />
+                  <button
+                    type="button"
+                    onClick={() => setShowCivicScoreModal(false)}
+                    className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                    aria-label="Close modal"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Score Progress Meter */}
+              {(() => {
+                const score = user.isBanned ? 0 : (user.civicScore ?? 50);
+                const tier = getCivicScoreTier(score, user.isBanned);
+                const progressPct = user.isBanned ? 0 : Math.min(100, Math.round((score / 500) * 100));
+
+                return (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 sm:p-6 space-y-3.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-sm sm:text-base font-extrabold text-slate-900">
+                      <span>Current Credibility Tier: <strong className={tier.badgeText}>{tier.label}</strong> <span className="font-semibold text-slate-500">({tier.trustLevel})</span></span>
+                      <span className="font-black text-slate-900">{score} / 500 Target Points</span>
+                    </div>
+                    <div className="h-3.5 w-full rounded-full bg-slate-200 overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-500 rounded-full ${
+                          user.isBanned ? 'bg-red-500' : 'bg-emerald-600'
+                        }`}
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                    <p className="text-sm text-slate-700 leading-relaxed font-medium">{tier.description}</p>
+                  </div>
+                );
+              })()}
+
+              {/* Point Earning Breakdown Rules */}
+              <div className="space-y-4">
+                <h3 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-600 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-emerald-600" />
+                  How to Improve Your Civic Score
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+                  <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col justify-between space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-base font-extrabold text-slate-900">True Civic Reporting</span>
+                      <span className="rounded-full bg-blue-100 px-3 py-1 text-xs sm:text-sm font-black text-blue-800 shrink-0">+10 pts</span>
+                    </div>
+                    <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                      File genuine civic complaints with accurate geo-location and clear photo or audio evidence.
+                    </p>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col justify-between space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-base font-extrabold text-slate-900">Work Progress Initiated</span>
+                      <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs sm:text-sm font-black text-indigo-800 shrink-0">+15 pts</span>
+                    </div>
+                    <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                      Earn points when municipal engineers assign crew and begin active on-site repairs.
+                    </p>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/80 flex flex-col justify-between space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-base font-extrabold text-slate-900">Issue Resolved & Verified</span>
+                      <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs sm:text-sm font-black text-emerald-800 shrink-0">+35 pts</span>
+                    </div>
+                    <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                      Substantially boost your standing when repairs are verified with after-repair photographic proof.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-red-200/80 bg-red-50/70 p-4 text-xs sm:text-sm text-red-900 flex items-start gap-2.5 leading-relaxed">
+                  <ShieldAlert className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Fake / Duplicate Complaint Safeguard:</strong> If residents comment that an issue is fake or duplicate, municipal authorities can ban the reporter. Banned accounts drop to <strong>0 score</strong> and are restricted from filing new reports or comments.
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCivicScoreModal(false)}
+                  className="rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white hover:bg-slate-800 transition-colors cursor-pointer shadow-xs"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}

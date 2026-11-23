@@ -3,6 +3,41 @@ import { prisma } from '@/lib/prisma';
 import { getAuthSession } from '@/lib/auth';
 import { syncUserCivicScore } from '@/lib/civic-score';
 
+export async function GET(req: NextRequest) {
+  try {
+    const session = await getAuthSession(req);
+    if (!session || session.user.role !== 'AUTHORITY') {
+      return NextResponse.json({ error: 'Only Municipal Authority accounts can view the ban list.' }, { status: 403 });
+    }
+
+    const bannedUsers = await prisma.user.findMany({
+      where: {
+        isBanned: true,
+        ...(session.user.cityId ? { cityId: session.user.cityId } : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        avatarUrl: true,
+        civicScore: true,
+        isBanned: true,
+        banReason: true,
+        bannedAt: true,
+        bannedBy: true,
+        createdAt: true,
+        city: { select: { name: true, state: true } },
+      },
+      orderBy: { bannedAt: 'desc' },
+    });
+
+    return NextResponse.json({ success: true, bannedUsers });
+  } catch (error) {
+    console.error('Error fetching banned users:', error);
+    return NextResponse.json({ error: 'Failed to retrieve ban list.' }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await getAuthSession(req);
@@ -11,14 +46,21 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { citizenId, action = 'BAN', reason } = body;
+    const { citizenId, username, action = 'BAN', reason } = body;
 
-    if (!citizenId || typeof citizenId !== 'string') {
-      return NextResponse.json({ error: 'Valid citizenId is required.' }, { status: 400 });
+    const cleanUsername = username ? String(username).replace(/^@/, '').trim() : undefined;
+    const whereClause = citizenId
+      ? { id: citizenId }
+      : cleanUsername
+      ? { username: cleanUsername }
+      : null;
+
+    if (!whereClause) {
+      return NextResponse.json({ error: 'Valid citizenId or username is required.' }, { status: 400 });
     }
 
-    const citizen = await prisma.user.findUnique({
-      where: { id: citizenId },
+    const citizen = await prisma.user.findFirst({
+      where: whereClause,
       select: {
         id: true,
         name: true,
@@ -39,7 +81,7 @@ export async function POST(req: NextRequest) {
 
     if (action === 'UNBAN') {
       const updated = await prisma.user.update({
-        where: { id: citizenId },
+        where: { id: citizen.id },
         data: {
           isBanned: false,
           banReason: null,
@@ -55,7 +97,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      const restoredScore = await syncUserCivicScore(citizenId);
+      const restoredScore = await syncUserCivicScore(citizen.id);
 
       return NextResponse.json({
         success: true,
@@ -71,7 +113,7 @@ export async function POST(req: NextRequest) {
       : 'Flagged and restricted by Municipal Authority for fake or duplicate complaints.';
 
     const updated = await prisma.user.update({
-      where: { id: citizenId },
+      where: { id: citizen.id },
       data: {
         isBanned: true,
         civicScore: 0,
@@ -102,4 +144,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to update citizen restriction status.' }, { status: 500 });
   }
 }
-

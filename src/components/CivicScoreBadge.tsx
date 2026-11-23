@@ -10,6 +10,8 @@ interface CivicScoreBadgeProps {
   showDetails?: boolean;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  hideIcon?: boolean;
+  hideTierLabel?: boolean;
 }
 
 export default function CivicScoreBadge({
@@ -18,6 +20,8 @@ export default function CivicScoreBadge({
   showDetails = false,
   size = 'sm',
   className = '',
+  hideIcon = false,
+  hideTierLabel = false,
 }: CivicScoreBadgeProps) {
   const tier = getCivicScoreTier(score, isBanned);
 
@@ -33,9 +37,9 @@ export default function CivicScoreBadge({
             : 'px-2 py-0.5 text-[10px]'
         } ${className}`}
       >
-        <ShieldAlert className={size === 'lg' ? 'w-4 h-4 text-red-600' : 'w-3 h-3 text-red-600'} />
+        {!hideIcon && <ShieldAlert className={size === 'lg' ? 'w-4 h-4 text-red-600' : 'w-3 h-3 text-red-600'} />}
         <span>Restricted (0 Pts)</span>
-        {showDetails && <span className="opacity-75 font-normal">&bull; Banned</span>}
+        {showDetails && !hideTierLabel && <span className="opacity-75 font-normal">&bull; Banned</span>}
       </span>
     );
   }
@@ -59,9 +63,9 @@ export default function CivicScoreBadge({
           : 'px-2 py-0.5 text-[10px]'
       } ${className}`}
     >
-      {icon}
+      {!hideIcon && icon}
       <span>{score} pts</span>
-      <span className="opacity-75 font-semibold">&bull; {tier.label}</span>
+      {!hideTierLabel && <span className="opacity-75 font-semibold">&bull; {tier.label}</span>}
       {showDetails && <span className="opacity-75 font-normal">&bull; {tier.trustLevel}</span>}
     </span>
   );

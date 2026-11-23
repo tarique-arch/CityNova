@@ -10,28 +10,48 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Please sign in to view your complaints.' }, { status: 401 });
     }
 
-    const orConditions: Prisma.TicketWhereInput[] = [
-      { reporterId: session.user.id },
-    ];
+    const isAuthority = session.user.role === 'AUTHORITY';
+    let whereCondition: Prisma.TicketWhereInput;
 
-    if (session.user.phone) {
-      orConditions.push({ citizenPhone: session.user.phone });
-    }
-    if (session.user.name) {
-      orConditions.push({ citizenName: session.user.name });
+    if (isAuthority) {
+      // For Authority: return tickets where this authority acted in status history,
+      // or tickets filed by them
+      whereCondition = {
+        OR: [
+          {
+            statusHistory: {
+              some: {
+                actorId: session.user.id,
+              },
+            },
+          },
+          { reporterId: session.user.id },
+        ],
+      };
+    } else {
+      const orConditions: Prisma.TicketWhereInput[] = [
+        { reporterId: session.user.id },
+      ];
+
+      if (session.user.phone) {
+        orConditions.push({ citizenPhone: session.user.phone });
+      }
+      if (session.user.name) {
+        orConditions.push({ citizenName: session.user.name });
+      }
+
+      whereCondition = { OR: orConditions };
     }
 
     const tickets = await prisma.ticket.findMany({
-      where: {
-        OR: orConditions,
-      },
+      where: whereCondition,
       include: {
         city: true,
         _count: {
           select: { comments: true, reactions: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { updatedAt: 'desc' },
     });
 
     const userTickets = tickets.map((t) => ({

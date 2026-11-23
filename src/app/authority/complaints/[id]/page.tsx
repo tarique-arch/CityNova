@@ -14,11 +14,13 @@ import { useAuth } from '@/lib/auth-context';
 const STATUS_OPTIONS = [
   { value: 'IN_PROGRESS', label: 'In Progress' },
   { value: 'PROVISIONALLY_RESOLVED', label: 'Repaired & Photo Proof' },
+  { value: 'CLOSED', label: 'Closed & Resolved' },
 ];
 
 const STATUS_STEPS = [
   { value: 'OPEN', label: 'Registered & Docketed' },
-  ...STATUS_OPTIONS,
+  { value: 'IN_PROGRESS', label: 'In Progress' },
+  { value: 'PROVISIONALLY_RESOLVED', label: 'Repaired & Photo Proof' },
   { value: 'CLOSED', label: 'Closed' },
 ];
 
@@ -68,7 +70,7 @@ function AuthorityComplaintContent() {
     setError('');
     setSuccess('');
     if (!STATUS_OPTIONS.some((option) => option.value === status)) {
-      setError('Choose an allowed status: In Progress or Repaired & Photo Proof.');
+      setError('Choose an allowed status: In Progress, Repaired & Photo Proof, or Closed & Resolved.');
       return;
     }
     if (status === 'PROVISIONALLY_RESOLVED' && !photo) {
