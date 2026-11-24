@@ -8,6 +8,7 @@ import { usePathname } from 'next/navigation';
 import { Building2, CircleCheck, CircleHelp, ExternalLink, Lightbulb, Scale, X, PlusCircle, ChevronRight, FileText, Clock, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { getStateRtiPortal } from '@/data/state-rti-portals';
+import { getMunicipalBodyName } from '@/data/india-states-cities';
 
 export default function Footer() {
   const { user } = useAuth();
@@ -22,6 +23,7 @@ export default function Footer() {
   const stateName = user?.state || user?.city?.state || '';
   const citizenState = user?.state || user?.city?.state || (cityName.toLowerCase().includes('ponda') ? 'Goa' : '');
   const userStateRti = getStateRtiPortal(citizenState);
+  const municipalBodyName = getMunicipalBodyName(cityName, stateName);
 
   useEffect(() => {
     setMounted(true);
@@ -151,14 +153,13 @@ export default function Footer() {
               <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
               Your City
             </h4>
-            <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800/80 space-y-2.5 shadow-sm">
-              <div className="flex items-center gap-2 text-white font-bold text-sm">
-                <Building2 className="w-4 h-4 text-orange-400 shrink-0" />
-                <span>{cityName}{stateName ? `, ${stateName}` : ''}</span>
-              </div>
-              <p className="text-xs leading-relaxed text-slate-400">
-                Complaint activity and geotagged civic locations are actively monitored for this jurisdiction.
-              </p>
+            <div className="p-4 rounded-xl bg-slate-900/90 border border-slate-800/80 shadow-sm flex items-center gap-3">
+              <span className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20 flex items-center justify-center shrink-0">
+                <Building2 className="w-4 h-4" />
+              </span>
+              <span className="text-sm font-bold text-white leading-snug">
+                {municipalBodyName}
+              </span>
             </div>
           </div>
         </div>

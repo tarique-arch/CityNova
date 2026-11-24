@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
         category: true,
         status: true,
         addressDescription: true,
+        initialPhotoUrl: true,
         createdAt: true,
         reporter: {
           select: {
@@ -86,6 +87,7 @@ export async function GET(request: NextRequest) {
       category: ticket.category,
       status: ticket.status === 'RESOLVED' ? 'CLOSED' : ticket.status,
       addressDescription: ticket.addressDescription ? ticket.addressDescription.replace(/\s*\(Ward\s+\d+\)/gi, '') : '',
+      initialPhotoUrl: ticket.initialPhotoUrl,
       createdAt: ticket.createdAt,
       authorId: ticket.reporter?.id,
       authorUsername: ticket.reporter?.username || 'citizen',

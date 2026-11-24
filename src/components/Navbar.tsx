@@ -27,34 +27,6 @@ export default function Navbar() {
       <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md shadow-xs border-b border-slate-200">
         <div className="tricolor-bar w-full" />
 
-        <div className="bg-slate-900 text-slate-300 text-xs py-1.5 px-4 sm:px-8 flex justify-between items-center border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-white font-bold">
-              <Image src="/citynova-icon.png" alt="CityNova" width={16} height={16} unoptimized className="w-4 h-4 rounded-full object-cover inline-block" />
-              <span>CityNova &bull; {isAuthority ? 'Authority Employee Portal' : 'Citizen Civic Portal'}</span>
-            </div>
-            <span className="hidden md:inline text-slate-600">&bull;</span>
-            <span className="hidden md:inline text-slate-300 text-[11px]">
-              {user?.city?.name || 'Your city'} &bull; {user?.state || user?.city?.state || ''}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 text-[11px] text-slate-400">
-            <Link href="/profile" className="hover:text-emerald-300 transition-colors flex items-center gap-1.5 group" title="View your profile">
-              {user?.avatarUrl ? (
-                <div className="w-4 h-4 rounded-full overflow-hidden border border-emerald-400/80 shrink-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={user.avatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
-                </div>
-              ) : null}
-              <span>Signed in as <span className="font-bold text-white group-hover:underline underline-offset-2">{user?.username || 'citizen'}</span></span>
-            </Link>
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-800 text-amber-300 border border-slate-700">
-              {isAuthority ? 'Authority' : 'Citizen'}
-            </span>
-          </div>
-        </div>
-
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3 group shrink-0">
             <div className="w-10 h-10 rounded-xl bg-slate-950 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0 overflow-hidden">
@@ -72,6 +44,17 @@ export default function Navbar() {
                 <span className="font-black text-2xl text-slate-900 tracking-tight">
                   City<span className="text-teal-600">Nova</span>
                 </span>
+                {user && (
+                  <span
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                      isAuthority
+                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                        : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                    }`}
+                  >
+                    {isAuthority ? 'AUTHORITY' : 'CITIZEN'}
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-slate-500 font-medium">
                 {user?.city?.name || 'Your city'} &bull; {user?.state || user?.city?.state || ''}

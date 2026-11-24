@@ -4,11 +4,25 @@ export const dynamic = 'force-dynamic';
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { MapPin, MessageCircle, ThumbsUp, Bookmark, ShieldCheck, Pencil, Star } from 'lucide-react';
+import {
+  MapPin,
+  MessageCircle,
+  ThumbsUp,
+  Bookmark,
+  ShieldCheck,
+  Pencil,
+  Star,
+  Search,
+  X,
+  Tag,
+  Calendar,
+  RotateCcw,
+} from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import CivicScoreBadge from '@/components/CivicScoreBadge';
 import { useAuth } from '@/lib/auth-context';
+import { parsePhotoUrls } from '@/lib/photos';
 
 interface PostComment {
   id: string;
@@ -33,6 +47,7 @@ interface CityPost {
   category: string;
   status: string;
   addressDescription: string;
+  initialPhotoUrl?: string | null;
   createdAt: string;
   authorId?: string;
   authorUsername: string;
@@ -110,6 +125,60 @@ export default function PostsPage() {
     statusOrder(a.status) - statusOrder(b.status) ||
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
+
+  // Search parameters: category name, keyword from report title, username, public grievance ID, date
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [selectedDate, setSelectedDate] = useState('');
+
+  // Extract unique categories dynamically from loaded posts
+  const categories = Array.from(new Set(posts.map((p) => p.category).filter(Boolean)));
+
+  const filteredPosts = orderedPosts.filter((post) => {
+    // 1. Category Filter
+    if (selectedCategory !== 'ALL' && post.category !== selectedCategory) {
+      return false;
+    }
+
+    // 2. Date Filter (YYYY-MM-DD)
+    if (selectedDate) {
+      const postDate = new Date(post.createdAt).toISOString().split('T')[0];
+      if (postDate !== selectedDate) {
+        return false;
+      }
+    }
+
+    // 3. Search Query Filter across title keywords, username, case ID, category, date
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase().replace(/^@/, '');
+      const matchesTitle = post.title?.toLowerCase().includes(q);
+      const matchesCaseId = post.caseId?.toLowerCase().includes(q);
+      const matchesUsername =
+        post.authorUsername?.toLowerCase().includes(q) ||
+        post.authorName?.toLowerCase().includes(q);
+      const matchesCategory = post.category?.toLowerCase().includes(q);
+      const matchesDescription = post.description?.toLowerCase().includes(q);
+      const dateStr = new Date(post.createdAt).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      }).toLowerCase();
+      const matchesDate = dateStr.includes(q);
+
+      if (
+        !matchesTitle &&
+        !matchesCaseId &&
+        !matchesUsername &&
+        !matchesCategory &&
+        !matchesDescription &&
+        !matchesDate
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 
   const loadPosts = useCallback(async () => {
     setError('');
@@ -232,11 +301,107 @@ export default function PostsPage() {
     <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
       <Navbar />
       <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 px-4 py-8 sm:px-6">
-        <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-widest text-orange-700">Community posts</p>
-          <h1 className="mt-2 text-3xl font-black">Complaints in {user?.city?.name || 'your city'}</h1>
-          <p className="mt-2 text-sm text-slate-600">Discuss reported issues with people in your city. Post authors are shown by username.</p>
-        </header>
+        {/* Search Bar & Multi-Parameter Filter Card */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-orange-700">Grievance Search &amp; Discovery</p>
+              <h1 className="mt-0.5 text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Search Complaints in {user?.city?.name || 'your city'}
+              </h1>
+            </div>
+            {(searchQuery || selectedCategory !== 'ALL' || selectedDate) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('ALL');
+                  setSelectedDate('');
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 text-xs font-bold transition-colors cursor-pointer self-start sm:self-center"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset search</span>
+              </button>
+            )}
+          </div>
+
+          {/* Primary Search Input */}
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by report title, @username, Case ID (CTN-...), or category..."
+              className="w-full pl-10 pr-10 py-3 rounded-xl border border-slate-300 bg-slate-50/50 hover:bg-white focus:bg-white text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors"
+                title="Clear search query"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Search Parameters Row */}
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            {/* Category Parameter Dropdown */}
+            <div className="flex items-center gap-1.5 text-xs">
+              <label htmlFor="search-category" className="font-bold text-slate-600 flex items-center gap-1 shrink-0">
+                <Tag className="w-3.5 h-3.5 text-slate-500" />
+                <span>Category:</span>
+              </label>
+              <select
+                id="search-category"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 outline-none transition hover:border-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 cursor-pointer"
+              >
+                <option value="ALL">All Categories ({posts.length})</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Date Parameter Picker */}
+            <div className="flex items-center gap-1.5 text-xs">
+              <label htmlFor="search-date" className="font-bold text-slate-600 flex items-center gap-1 shrink-0">
+                <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                <span>Date:</span>
+              </label>
+              <input
+                id="search-date"
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 outline-none transition hover:border-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 cursor-pointer"
+              />
+              {selectedDate && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate('')}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-100"
+                  title="Clear date filter"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Active Results Count */}
+            <div className="ml-auto text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200">
+              Showing {filteredPosts.length} of {posts.length} {posts.length === 1 ? 'post' : 'posts'}
+            </div>
+          </div>
+        </section>
 
         {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">{error}</p>}
         {loading && <p className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading city posts...</p>}
@@ -249,8 +414,30 @@ export default function PostsPage() {
           </div>
         )}
 
+        {!loading && posts.length > 0 && filteredPosts.length === 0 && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center space-y-3">
+            <Search className="mx-auto h-8 w-8 text-slate-400" />
+            <h2 className="text-lg font-bold text-slate-800">No complaints match your search</h2>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              We couldn&apos;t find any posts matching your current filters. Try searching for different keywords, username, Case ID, or resetting the filters.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('ALL');
+                setSelectedDate('');
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset search filters</span>
+            </button>
+          </div>
+        )}
+
         <div className="space-y-4">
-          {orderedPosts.map((post) => (
+          {filteredPosts.map((post) => (
             <article key={post.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="space-y-4 p-5 sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -338,67 +525,181 @@ export default function PostsPage() {
                   </span>
                 </div>
 
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-orange-700">{post.category}</p>
-                  <h2 className="mt-1 text-lg font-extrabold text-slate-900">{post.title}</h2>
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">{post.description}</p>
-                </div>
+                {/* Clickable Post Content: Click anywhere to open the complaint docket */}
+                {(() => {
+                  const complaintUrl =
+                    user?.role === 'AUTHORITY'
+                      ? `/authority/complaints/${post.caseId}`
+                      : `/ticket/${post.caseId}`;
+                  const photos = parsePhotoUrls(post.initialPhotoUrl);
 
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
-                  <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{post.addressDescription}</span>
-                  {user?.role === 'AUTHORITY' ? (
-                    <Link href={`/authority/complaints/${post.caseId}`} className="inline-flex rounded-lg bg-blue-700 px-3 py-1.5 font-bold text-white hover:bg-blue-800">View Complaint</Link>
-                  ) : (
-                    <Link href={`/ticket/${post.caseId}`} className="inline-flex rounded-lg bg-blue-700 px-3 py-1.5 font-bold text-white hover:bg-blue-800">View Complaint</Link>
-                  )}
-                </div>
+                  return (
+                    <Link
+                      href={complaintUrl}
+                      className="block group cursor-pointer space-y-3"
+                      title="Click to view complaint details"
+                    >
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wide text-orange-700">
+                          {post.category}
+                        </p>
+                        <h2 className="mt-1 text-lg font-extrabold text-slate-900 group-hover:text-blue-700 transition-colors">
+                          {post.title}
+                        </h2>
+                        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                          {post.description}
+                        </p>
+                      </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  {canInteract ? (
+                      {/* Attached Pictures: Social Media Style Layout */}
+                      {photos.length > 0 && (
+                        <div className="pt-1">
+                          {photos.length === 1 && (
+                            <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 max-h-[400px] w-full">
+                              <img
+                                src={photos[0]}
+                                alt={post.title}
+                                className="w-full max-h-[400px] object-cover group-hover:scale-[1.01] transition-transform duration-300"
+                                loading="lazy"
+                              />
+                            </div>
+                          )}
+
+                          {photos.length === 2 && (
+                            <div className="grid grid-cols-2 gap-2 rounded-2xl overflow-hidden border border-slate-200 max-h-[320px]">
+                              {photos.map((src, i) => (
+                                <div key={i} className="relative aspect-4/3 bg-slate-100 overflow-hidden">
+                                  <img
+                                    src={src}
+                                    alt={`${post.title} photo ${i + 1}`}
+                                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                                    loading="lazy"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {photos.length === 3 && (
+                            <div className="grid grid-cols-2 gap-2 rounded-2xl overflow-hidden border border-slate-200 max-h-[340px]">
+                              <div className="relative row-span-2 h-full min-h-[220px] bg-slate-100 overflow-hidden">
+                                <img
+                                  src={photos[0]}
+                                  alt={`${post.title} photo 1`}
+                                  className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                                  loading="lazy"
+                                />
+                              </div>
+                              <div className="grid grid-rows-2 gap-2 h-full">
+                                {photos.slice(1, 3).map((src, i) => (
+                                  <div key={i} className="relative aspect-4/3 bg-slate-100 overflow-hidden">
+                                    <img
+                                      src={src}
+                                      alt={`${post.title} photo ${i + 2}`}
+                                      className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                                      loading="lazy"
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {photos.length >= 4 && (
+                            <div className="grid grid-cols-2 gap-2 rounded-2xl overflow-hidden border border-slate-200 max-h-[340px]">
+                              {photos.slice(0, 4).map((src, i) => (
+                                <div key={i} className="relative aspect-4/3 bg-slate-100 overflow-hidden">
+                                  <img
+                                    src={src}
+                                    alt={`${post.title} photo ${i + 1}`}
+                                    className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                                    loading="lazy"
+                                  />
+                                  {i === 3 && photos.length > 4 && (
+                                    <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center text-white font-extrabold text-lg">
+                                      +{photos.length - 3}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Location text */}
+                      {post.addressDescription && (
+                        <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium pt-1">
+                          <MapPin className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                          <span className="group-hover:text-slate-800 transition-colors">
+                            {post.addressDescription}
+                          </span>
+                        </div>
+                      )}
+                    </Link>
+                  );
+                })()}
+
+                {/* Bottom Row: Post ID on left, Like/Comment/Save small icons on right */}
+                <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-100">
+                  <span className="text-[11px] font-mono text-slate-400 font-semibold">
+                    {post.caseId}
+                  </span>
+
+                  <div className="flex items-center gap-1.5 sm:gap-2 ml-auto">
+                    {/* Like / Upvote Icon */}
+                    {canInteract ? (
+                      <button
+                        type="button"
+                        onClick={() => void toggleReaction(post)}
+                        disabled={reactionBusy === post.id}
+                        aria-pressed={post.reactedByMe}
+                        className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                          post.reactedByMe
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent'
+                        }`}
+                        title="Support complaint (+1)"
+                      >
+                        <ThumbsUp className={`h-4 w-4 ${post.reactedByMe ? 'fill-blue-600 text-blue-600' : ''}`} />
+                        <span>{post.plusOneCount}</span>
+                      </button>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-slate-400">
+                        <ThumbsUp className="h-4 w-4" />
+                        <span>{post.plusOneCount}</span>
+                      </span>
+                    )}
+
+                    {/* Comment Icon */}
                     <button
                       type="button"
-                      onClick={() => void toggleReaction(post)}
-                      disabled={reactionBusy === post.id}
-                      aria-pressed={post.reactedByMe}
-                      className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-bold transition-colors disabled:opacity-60 ${post.reactedByMe ? 'border-blue-300 bg-blue-50 text-blue-800' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+                      onClick={() => toggleComments(post.id)}
+                      className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                        expandedComments[post.id]
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent'
+                      }`}
+                      title={expandedComments[post.id] ? 'Hide comments' : 'Comments'}
                     >
-                      <ThumbsUp className="h-4 w-4" />
-                      +1 <span>{post.plusOneCount}</span>
+                      <MessageCircle className={`h-4 w-4 ${expandedComments[post.id] ? 'fill-blue-600 text-blue-600' : ''}`} />
+                      {post.comments.length > 0 && <span>{post.comments.length}</span>}
                     </button>
-                  ) : (
-                    <span className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-bold text-slate-600">
-                      <ThumbsUp className="h-4 w-4" />
-                      +1 <span>{post.plusOneCount}</span>
-                    </span>
-                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => toggleComments(post.id)}
-                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-sm font-bold transition-all ${
-                      expandedComments[post.id]
-                        ? 'border-blue-400 bg-blue-50 text-blue-700 shadow-xs'
-                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                    }`}
-                    title={expandedComments[post.id] ? 'Hide comments' : 'Show comments'}
-                  >
-                    <MessageCircle className={`h-4 w-4 ${expandedComments[post.id] ? 'fill-blue-600 text-blue-600' : ''}`} />
-                    <span>{post.comments.length > 0 ? `Comments (${post.comments.length})` : 'Comment'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => toggleSavePost(post.id)}
-                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-sm font-bold transition-all ${
-                      savedPostIds.includes(post.id)
-                        ? 'border-amber-300 bg-amber-50 text-amber-800 shadow-xs'
-                        : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                    }`}
-                    title={savedPostIds.includes(post.id) ? 'Remove from Saved' : 'Save post to your Profile'}
-                  >
-                    <Bookmark className={`h-4 w-4 ${savedPostIds.includes(post.id) ? 'fill-amber-500 text-amber-500' : ''}`} />
-                    <span>{savedPostIds.includes(post.id) ? 'Saved' : 'Save'}</span>
-                  </button>
+                    {/* Save Icon */}
+                    <button
+                      type="button"
+                      onClick={() => toggleSavePost(post.id)}
+                      className={`inline-flex items-center rounded-xl p-2 text-xs font-bold transition-all cursor-pointer ${
+                        savedPostIds.includes(post.id)
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent'
+                      }`}
+                      title={savedPostIds.includes(post.id) ? 'Remove from Saved' : 'Save post'}
+                    >
+                      <Bookmark className={`h-4 w-4 ${savedPostIds.includes(post.id) ? 'fill-amber-500 text-amber-500' : ''}`} />
+                    </button>
+                  </div>
                 </div>
 
                 {expandedComments[post.id] && (

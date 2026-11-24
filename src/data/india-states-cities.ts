@@ -312,3 +312,113 @@ export function getKnownCoordinates(cityName: string, stateName: string): Indian
   return KNOWN_CITY_COORDINATES[cityKey] || null;
 }
 
+/**
+ * Known municipal body designations across Indian cities.
+ * Municipal Corporations (Nagar Nigam / Mahanagar Palika) for large cities,
+ * Municipal Councils (Nagar Palika Parishad) for smaller cities/towns.
+ */
+const KNOWN_MUNICIPAL_BODIES: Record<string, string> = {
+  // Goa
+  ponda: 'Ponda Municipal Council',
+  mapusa: 'Mapusa Municipal Council',
+  margao: 'Margao Municipal Council',
+  'vasco da gama': 'Mormugao Municipal Council',
+  vasco: 'Mormugao Municipal Council',
+  mormugao: 'Mormugao Municipal Council',
+  panaji: 'Corporation of the City of Panaji',
+  panjim: 'Corporation of the City of Panaji',
+  bicholim: 'Bicholim Municipal Council',
+  curchorem: 'Curchorem-Cacora Municipal Council',
+  cuncolim: 'Cuncolim Municipal Council',
+  valpoi: 'Valpoi Municipal Council',
+  pernem: 'Pernem Municipal Council',
+  sanquelim: 'Sanquelim Municipal Council',
+  canacona: 'Canacona Municipal Council',
+
+  // Uttar Pradesh
+  aligarh: 'Aligarh Municipal Corporation',
+  mau: 'Mau Municipal Council',
+  noida: 'Noida Municipal Corporation',
+  'greater noida': 'Greater Noida Industrial Development Authority',
+  lucknow: 'Lucknow Municipal Corporation',
+  kanpur: 'Kanpur Municipal Corporation',
+  varanasi: 'Varanasi Municipal Corporation',
+  agra: 'Agra Municipal Corporation',
+  prayagraj: 'Prayagraj Municipal Corporation',
+  allahabad: 'Prayagraj Municipal Corporation',
+  meerut: 'Meerut Municipal Corporation',
+  bareilly: 'Bareilly Municipal Corporation',
+  moradabad: 'Moradabad Municipal Corporation',
+  saharanpur: 'Saharanpur Municipal Corporation',
+  gorakhpur: 'Gorakhpur Municipal Corporation',
+  firozabad: 'Firozabad Municipal Corporation',
+  jhansi: 'Jhansi Municipal Corporation',
+  ghaziabad: 'Ghaziabad Municipal Corporation',
+  mathura: 'Mathura-Vrindavan Municipal Corporation',
+  ayodhya: 'Ayodhya Municipal Corporation',
+  shahjahanpur: 'Shahjahanpur Municipal Corporation',
+  muzaffarnagar: 'Muzaffarnagar Municipal Council',
+
+  // Metros and major Indian cities
+  delhi: 'Municipal Corporation of Delhi',
+  'new delhi': 'Municipal Corporation of Delhi',
+  mumbai: 'Brihanmumbai Municipal Corporation',
+  bengaluru: 'Bruhat Bengaluru Mahanagara Palike',
+  bangalore: 'Bruhat Bengaluru Mahanagara Palike',
+  chennai: 'Greater Chennai Corporation',
+  kolkata: 'Kolkata Municipal Corporation',
+  hyderabad: 'Greater Hyderabad Municipal Corporation',
+  pune: 'Pune Municipal Corporation',
+  ahmedabad: 'Ahmedabad Municipal Corporation',
+  surat: 'Surat Municipal Corporation',
+  jaipur: 'Jaipur Municipal Corporation',
+  patna: 'Patna Municipal Corporation',
+  bhopal: 'Bhopal Municipal Corporation',
+  indore: 'Indore Municipal Corporation',
+  chandigarh: 'Municipal Corporation Chandigarh',
+  visakhapatnam: 'Greater Visakhapatnam Municipal Corporation',
+  vijayawada: 'Vijayawada Municipal Corporation',
+  guntur: 'Guntur Municipal Corporation',
+  guwahati: 'Guwahati Municipal Corporation',
+  raipur: 'Raipur Municipal Corporation',
+  ranchi: 'Ranchi Municipal Corporation',
+  dhanbad: 'Dhanbad Municipal Corporation',
+  kochi: 'Kochi Municipal Corporation',
+  thiruvananthapuram: 'Thiruvananthapuram Municipal Corporation',
+  ludhiana: 'Ludhiana Municipal Corporation',
+  amritsar: 'Amritsar Municipal Corporation',
+  jalandhar: 'Jalandhar Municipal Corporation',
+  shimla: 'Shimla Municipal Corporation',
+  dehradun: 'Dehradun Municipal Corporation',
+  haridwar: 'Haridwar Municipal Corporation',
+};
+
+/**
+ * Resolves the official municipal corporation/council name for a given city and state.
+ * e.g. "Ponda" -> "Ponda Municipal Council", "Aligarh" -> "Aligarh Municipal Corporation"
+ */
+export function getMunicipalBodyName(city?: string | null, state?: string | null): string {
+  if (!city || city.trim().toLowerCase() === 'your city') {
+    return 'Municipal Corporation / Council';
+  }
+  const clean = city.trim();
+  const lower = clean.toLowerCase();
+
+  if (KNOWN_MUNICIPAL_BODIES[lower]) {
+    return KNOWN_MUNICIPAL_BODIES[lower];
+  }
+
+  // Already qualified with civic body title
+  if (/municipal (corporation|council)|authority|mahanagar palika|nagar (nigam|palika)/i.test(clean)) {
+    return clean;
+  }
+
+  // In Goa, all municipalities except Panaji are Municipal Councils
+  if (state?.toLowerCase().includes('goa') || lower === 'ponda' || lower === 'mapusa') {
+    return `${clean} Municipal Council`;
+  }
+
+  // Default to Municipal Corporation for recognized cities
+  return `${clean} Municipal Corporation`;
+}
+

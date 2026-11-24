@@ -20,6 +20,8 @@ import {
   Building2,
   Copy,
   Check,
+  MoreVertical,
+  X,
 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -71,6 +73,7 @@ function CitizenPublicProfileContent() {
   const cleanUsername = rawUsername ? decodeURIComponent(rawUsername).replace(/^@/, '').trim() : '';
   const { user: currentUser, loading: authLoading } = useAuth();
   const isAuthority = currentUser?.role === 'AUTHORITY';
+  const isOwnProfile = Boolean(currentUser?.username && cleanUsername && currentUser.username.toLowerCase() === cleanUsername.toLowerCase());
 
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,8 +82,12 @@ function CitizenPublicProfileContent() {
   const [actionSuccess, setActionSuccess] = useState('');
   const [actionError, setActionError] = useState('');
 
+  // Citizen 3-dots menu & Civic score modal
+  const [showCitizenMenu, setShowCitizenMenu] = useState(false);
+  const [showCivicScoreModal, setShowCivicScoreModal] = useState(false);
+
   // Active Tab & Filters
-  const [activeTab, setActiveTab] = useState<'complaints' | 'civic'>('complaints');
+  const [activeTab, setActiveTab] = useState<'complaints'>('complaints');
   const [complaintFilter, setComplaintFilter] = useState<'ALL' | 'OPEN' | 'IN_PROGRESS' | 'RESOLVED'>('ALL');
   const [copiedCaseId, setCopiedCaseId] = useState<string | null>(null);
 
@@ -212,8 +219,6 @@ function CitizenPublicProfileContent() {
     );
   };
 
-  const scoreTier = profile ? getCivicScoreTier(profile.civicScore, profile.isBanned) : null;
-
   // Citizens are not permitted to view other citizens' profiles; only Authorities can.
   if (!authLoading && currentUser && currentUser.role !== 'AUTHORITY' && currentUser.username !== cleanUsername) {
     return (
@@ -334,8 +339,8 @@ function CitizenPublicProfileContent() {
                     </div>
                   </div>
 
-                  {/* Action area on the right: Authority controls */}
-                  {isAuthority && (
+                  {/* Action area on the right: Authority controls or Citizen 3-dots */}
+                  {isAuthority ? (
                     <div className="flex items-center gap-2">
                       {profile.isStarred ? (
                         <button
@@ -385,7 +390,41 @@ function CitizenPublicProfileContent() {
                         </button>
                       )}
                     </div>
-                  )}
+                  ) : isOwnProfile ? (
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowCitizenMenu(!showCitizenMenu)}
+                        className="w-9 h-9 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer shadow-xs"
+                        title="Citizen Options"
+                        aria-label="Citizen Options"
+                      >
+                        <MoreVertical className="w-5 h-5 text-slate-700" />
+                      </button>
+
+                      {showCitizenMenu && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-20 cursor-default"
+                            onClick={() => setShowCitizenMenu(false)}
+                          />
+                          <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl z-30 animate-in fade-in zoom-in-95">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowCitizenMenu(false);
+                                setShowCivicScoreModal(true);
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 transition-colors cursor-pointer"
+                            >
+                              <Award className="w-4 h-4 text-emerald-600 shrink-0" />
+                              <span>Civic Score & Trust Credibility</span>
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
 
                 {/* User Info */}
@@ -398,11 +437,13 @@ function CitizenPublicProfileContent() {
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                       {profile.role === 'AUTHORITY' ? 'Authority Official' : 'Verified Citizen'}
                     </span>
-                    <CivicScoreBadge
-                      score={profile.civicScore ?? 50}
-                      isBanned={profile.isBanned}
-                      size="md"
-                    />
+                    {isAuthority && (
+                      <CivicScoreBadge
+                        score={profile.civicScore ?? 50}
+                        isBanned={profile.isBanned}
+                        size="md"
+                      />
+                    )}
                     {profile.isStarred && (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-50 text-amber-900 border border-amber-300">
                         <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
@@ -426,8 +467,8 @@ function CitizenPublicProfileContent() {
                   )}
                 </div>
 
-                {/* Quick Metrics Bar - EXACTLY as in image 2 */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4 border-t border-slate-100">
+                {/* Quick Metrics Bar */}
+                <div className={`grid gap-3 pt-4 border-t border-slate-100 ${isAuthority ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-1 sm:grid-cols-3'}`}>
                   <div className="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-100 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0">
                       <FileText className="w-5 h-5" />
@@ -438,17 +479,19 @@ function CitizenPublicProfileContent() {
                     </div>
                   </div>
 
-                  <div className="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-100 flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${profile.isBanned ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'}`}>
-                      <Award className="w-5 h-5" />
+                  {isAuthority && (
+                    <div className="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-100 flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${profile.isBanned ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'}`}>
+                        <Award className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-500">Civic Score</p>
+                        <p className={`text-lg font-black ${profile.isBanned ? 'text-red-700' : 'text-slate-900'}`}>
+                          {profile.isBanned ? '0' : profile.civicScore} <span className="text-xs font-bold text-slate-500">pts</span>
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold text-slate-500">Civic Score</p>
-                      <p className={`text-lg font-black ${profile.isBanned ? 'text-red-700' : 'text-slate-900'}`}>
-                        {profile.isBanned ? '0' : profile.civicScore} <span className="text-xs font-bold text-slate-500">pts</span>
-                      </p>
-                    </div>
-                  </div>
+                  )}
 
                   <div className="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-100 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
@@ -480,34 +523,13 @@ function CitizenPublicProfileContent() {
               <button
                 type="button"
                 onClick={() => setActiveTab('complaints')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
-                  activeTab === 'complaints'
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-900 text-white shadow-xs transition-all cursor-pointer whitespace-nowrap"
               >
                 <FileText className="w-4 h-4 text-sky-400" />
                 <span>Complaints Filed by Citizen</span>
-                <span
-                  className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-black ${
-                    activeTab === 'complaints' ? 'bg-sky-500 text-white' : 'bg-slate-200 text-slate-700'
-                  }`}
-                >
+                <span className="ml-1 px-2 py-0.5 rounded-full text-[11px] font-black bg-sky-500 text-white">
                   {profile.tickets.length}
                 </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('civic')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${
-                  activeTab === 'civic'
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <Award className="w-4 h-4 text-emerald-400" />
-                <span>Civic Score & Trust</span>
               </button>
             </div>
 
@@ -624,43 +646,6 @@ function CitizenPublicProfileContent() {
                 </div>
               </div>
             )}
-
-            {/* Tab 2: Civic Score & Trust */}
-            {activeTab === 'civic' && (
-              <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
-                <div className="border-b border-slate-100 pb-5 flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2.5">
-                      <Award className="w-6 h-6 text-emerald-600" />
-                      <h2 className="text-xl sm:text-2xl font-black text-slate-900">Civic Score & Trust Credibility</h2>
-                    </div>
-                    <p className="text-sm text-slate-600 mt-1">
-                      Citizen standing based on verified municipal issue reporting and ground validation.
-                    </p>
-                  </div>
-                  <CivicScoreBadge score={profile.civicScore} isBanned={profile.isBanned} size="lg" showDetails />
-                </div>
-
-                {/* Score Progress Meter */}
-                {scoreTier && (
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 sm:p-6 space-y-3.5">
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-sm sm:text-base font-extrabold text-slate-900">
-                      <span>Current Credibility Tier: <strong className={scoreTier.badgeText}>{scoreTier.label}</strong> <span className="font-semibold text-slate-500">({scoreTier.trustLevel})</span></span>
-                      <span className="font-black text-slate-900">{profile.isBanned ? 0 : profile.civicScore} / 500 Target Points</span>
-                    </div>
-                    <div className="h-3.5 w-full rounded-full bg-slate-200 overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-500 rounded-full ${
-                          profile.isBanned ? 'bg-red-500' : 'bg-emerald-600'
-                        }`}
-                        style={{ width: `${profile.isBanned ? 0 : Math.min(100, Math.round((profile.civicScore / 500) * 100))}%` }}
-                      />
-                    </div>
-                    <p className="text-sm text-slate-700 leading-relaxed font-medium">{scoreTier.description}</p>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         )}
 
@@ -756,6 +741,61 @@ function CitizenPublicProfileContent() {
                   {actionBusy ? 'Saving...' : 'Add to Star List'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Citizen Civic Score & Trust Credibility (via 3 dots) */}
+        {showCivicScoreModal && profile && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs overflow-y-auto">
+            <div className="w-full max-w-3xl rounded-3xl bg-white p-6 sm:p-8 shadow-2xl space-y-6 my-8 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95">
+              <div className="border-b border-slate-100 pb-5 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2.5">
+                    <Award className="w-6 h-6 text-emerald-600" />
+                    <h2 className="text-xl sm:text-2xl font-black text-slate-900">Civic Score & Trust Credibility</h2>
+                  </div>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Your score reflects verified civic contributions and municipal repair accountability.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <CivicScoreBadge score={profile.civicScore ?? 50} isBanned={profile.isBanned} size="lg" showDetails />
+                  <button
+                    type="button"
+                    onClick={() => setShowCivicScoreModal(false)}
+                    className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                    aria-label="Close modal"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Score Progress Meter */}
+              {(() => {
+                const score = profile.isBanned ? 0 : (profile.civicScore ?? 50);
+                const tier = getCivicScoreTier(score, profile.isBanned);
+                const progressPct = profile.isBanned ? 0 : Math.min(100, Math.round((score / 500) * 100));
+
+                return (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5 sm:p-6 space-y-3.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-sm sm:text-base font-extrabold text-slate-900">
+                      <span>Current Credibility Tier: <strong className={tier.badgeText}>{tier.label}</strong> <span className="font-semibold text-slate-500">({tier.trustLevel})</span></span>
+                      <span className="font-black text-slate-900">{score} / 500 Target Points</span>
+                    </div>
+                    <div className="h-3.5 w-full rounded-full bg-slate-200 overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-500 rounded-full ${
+                          profile.isBanned ? 'bg-red-500' : 'bg-emerald-600'
+                        }`}
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                    <p className="text-sm text-slate-700 leading-relaxed font-medium">{tier.description}</p>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}

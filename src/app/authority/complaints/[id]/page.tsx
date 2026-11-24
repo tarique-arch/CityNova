@@ -5,13 +5,13 @@ export const dynamic = 'force-dynamic';
 import { FormEvent, Suspense, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, MapPin, Upload, ShieldAlert, UserX, CheckCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, Upload, Check } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import CommitmentCard from '@/components/CommitmentCard';
 import TicketHistory from '@/components/TicketHistory';
-import CivicScoreBadge from '@/components/CivicScoreBadge';
 import { useAuth } from '@/lib/auth-context';
+import { parsePhotoUrls } from '@/lib/photos';
 
 const STATUS_OPTIONS = [
   { value: 'IN_PROGRESS', label: 'In Progress' },
@@ -38,12 +38,6 @@ function AuthorityComplaintContent() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  // Citizen Ban State
-  const [banReason, setBanReason] = useState('');
-  const [banModalOpen, setBanModalOpen] = useState(false);
-  const [banBusy, setBanBusy] = useState(false);
-  const [banFeedback, setBanFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -101,47 +95,6 @@ function AuthorityComplaintContent() {
     }
   };
 
-  const handleBanCitizen = async (action: 'BAN' | 'UNBAN') => {
-    const reporterId = ticket?.reporterDetails?.id;
-    if (!reporterId) {
-      setBanFeedback('Reporter account information is not linked to an active user.');
-      return;
-    }
-    setBanBusy(true);
-    setBanFeedback(null);
-    try {
-      const response = await fetch('/api/authority/ban', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          citizenId: reporterId,
-          action,
-          reason: action === 'BAN' ? banReason : undefined,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to update citizen ban status.');
-      setBanFeedback(data.message);
-      setTicket((current: any) => ({
-        ...current,
-        reporterCivicScore: data.user.civicScore,
-        reporterIsBanned: action === 'BAN',
-        reporterDetails: {
-          ...current?.reporterDetails,
-          isBanned: action === 'BAN',
-          civicScore: data.user.civicScore,
-          banReason: action === 'BAN' ? banReason : null,
-        },
-      }));
-      setBanModalOpen(false);
-      setBanReason('');
-    } catch (banErr) {
-      setBanFeedback(banErr instanceof Error ? banErr.message : 'Failed to update citizen ban status.');
-    } finally {
-      setBanBusy(false);
-    }
-  };
-
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
       <Navbar />
@@ -154,16 +107,84 @@ function AuthorityComplaintContent() {
             <p className="text-xs font-bold uppercase tracking-widest text-blue-700">Authority Employee · Complaint Details</p>
             <h1 className="mt-2 text-2xl font-black">Public Grievance Docket: <span className="font-mono text-blue-700">{ticket.caseId}</span></h1>
             <p className="mt-1 text-sm text-slate-600">{ticket.city?.name || user?.city?.name || 'Your city'} · Complaint status and evidence</p>
-            <div className="mt-5 grid gap-2 sm:grid-cols-4">
-              {STATUS_STEPS.map((item, index) => {
-                const persistedStatus = ticket.status === 'ASSIGNED' ? 'IN_PROGRESS' : ticket.status;
-                const currentIndex = Math.max(0, STATUS_STEPS.findIndex((option) => option.value === persistedStatus));
-                return <div key={item.value} className={`rounded-xl border p-3 text-center text-xs font-bold ${index === currentIndex ? 'border-blue-400 bg-blue-50 text-blue-900' : index < currentIndex ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>{item.label}</div>;
-              })}
-            </div>
+            {/* E-commerce Style Order Tracking Stepper */}
+            {(() => {
+              const persistedStatus =
+                ticket.status === 'ASSIGNED' ? 'IN_PROGRESS' :
+                ticket.status === 'RESOLVED' ? 'CLOSED' :
+                ticket.status;
+              const currentIndex = Math.max(0, STATUS_STEPS.findIndex((option) => option.value === persistedStatus));
+
+              return (
+                <div className="relative mt-7 mb-2">
+                  {/* Connecting Line Track Background */}
+                  <div className="absolute top-4 left-[12.5%] right-[12.5%] h-1 bg-slate-200 -translate-y-1/2 z-0" />
+
+                  {/* Connecting Line Track Blue Active Fill */}
+                  <div
+                    className="absolute top-4 left-[12.5%] h-1 bg-blue-600 -translate-y-1/2 transition-all duration-500 z-0"
+                    style={{
+                      width: `${Math.min(75, Math.max(0, (currentIndex / (STATUS_STEPS.length - 1)) * 75))}%`,
+                    }}
+                  />
+
+                  {/* Four Tracking Stages */}
+                  <div className="relative z-10 grid grid-cols-4 gap-2 sm:gap-3">
+                    {STATUS_STEPS.map((item, index) => {
+                      const isCompleted = index < currentIndex;
+                      const isCurrent = index === currentIndex;
+
+                      return (
+                        <div key={item.value} className="flex flex-col items-center">
+                          {/* Step Milestone Node */}
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
+                              isCompleted
+                                ? 'bg-blue-600 border-white text-white shadow-xs'
+                                : isCurrent
+                                ? 'bg-blue-600 border-white text-white ring-4 ring-blue-100 shadow-md shadow-blue-200'
+                                : 'bg-white border-slate-300 text-slate-400'
+                            }`}
+                          >
+                            {isCompleted ? (
+                              <Check className="w-4 h-4 stroke-[3]" />
+                            ) : isCurrent ? (
+                              <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
+                            ) : (
+                              <span className="text-xs font-bold">{index + 1}</span>
+                            )}
+                          </div>
+
+                          {/* Stage Card Box */}
+                          <div
+                            className={`mt-2.5 w-full rounded-xl p-2.5 sm:p-3 text-center text-xs font-bold transition-all duration-200 ${
+                              isCurrent
+                                ? 'border-2 border-blue-500 bg-blue-50 text-blue-900 shadow-xs font-black'
+                                : isCompleted
+                                ? 'border border-blue-200 bg-blue-50/70 text-blue-900'
+                                : 'border border-slate-200 bg-slate-50 text-slate-500'
+                            }`}
+                          >
+                            <p className="line-clamp-2 leading-tight">{item.label}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </header>
 
-          <CommitmentCard caseId={ticket.caseId} cityName={ticket.city?.name || user?.city?.name || 'Your city'} publicCommitmentDate={ticket.publicCommitmentDate} slaDeadline={ticket.slaDeadline} urgency={ticket.urgency} status={ticket.status} />
+          <CommitmentCard
+            caseId={ticket.caseId}
+            cityName={ticket.city?.name || user?.city?.name || 'Your city'}
+            stateName={ticket.city?.state || user?.city?.state || user?.state || ''}
+            publicCommitmentDate={ticket.publicCommitmentDate}
+            slaDeadline={ticket.slaDeadline}
+            urgency={ticket.urgency}
+            status={ticket.status}
+          />
 
           <section className="space-y-4 rounded-2xl border-2 border-slate-200 bg-white p-6 shadow-sm">
             <div className="border-b border-slate-200 pb-4">
@@ -173,116 +194,43 @@ function AuthorityComplaintContent() {
             <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{ticket.description}</p>
             <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-600">
               <span className="inline-flex items-center gap-1.5"><MapPin className="h-4 w-4 text-red-600" />{ticket.addressDescription}</span>
-              <span>Reported by: {ticket.citizenName}</span>
+              <span>
+                Reported by:{' '}
+                {(ticket.reporterDetails?.username || ticket.reporter?.username || ticket.reporterUsername) ? (
+                  <Link
+                    href={`/profile/${ticket.reporterDetails?.username || ticket.reporter?.username || ticket.reporterUsername}`}
+                    className="font-mono font-medium text-blue-700 hover:text-blue-900 hover:underline"
+                    title="View citizen profile and civic credibility"
+                  >
+                    @{ticket.reporterDetails?.username || ticket.reporter?.username || ticket.reporterUsername}
+                  </Link>
+                ) : (
+                  ticket.citizenName
+                )}
+              </span>
               <span>Reported: {new Date(ticket.createdAt).toLocaleString()}</span>
             </div>
-
-            {/* Citizen Reporter Credibility & Ban Actions */}
-            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Citizen Reporter:</span>
-                    <span className="text-sm font-black text-slate-900">{ticket.citizenName}</span>
-                    {ticket.reporterDetails?.username && (
-                      <span className="text-xs text-slate-500 font-mono">@{ticket.reporterDetails.username}</span>
-                    )}
-                    <CivicScoreBadge
-                      score={ticket.reporterCivicScore ?? 50}
-                      isBanned={ticket.reporterIsBanned}
-                      showDetails
-                      size="md"
-                    />
-                  </div>
-                  <p className="text-xs text-slate-600">
-                    Civic score reflects verified reports, active progress, and dispute vigilance.
-                    {ticket.reporterIsBanned && (
-                      <span className="text-red-700 font-bold block mt-1">
-                        Restriction in effect: {ticket.reporterDetails?.banReason || 'Banned for fake or duplicate issues.'}
-                      </span>
-                    )}
-                  </p>
-                </div>
-
-                {ticket.reporterDetails?.id && (
-                  <div>
-                    {ticket.reporterIsBanned ? (
-                      <button
-                        type="button"
-                        disabled={banBusy}
-                        onClick={() => void handleBanCitizen('UNBAN')}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-800 disabled:opacity-50 transition-all shadow-xs cursor-pointer"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        <span>{banBusy ? 'Restoring...' : 'Restore Reporting (Unban)'}</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setBanModalOpen(true)}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-red-300 bg-red-50 px-3.5 py-2 text-xs font-bold text-red-700 hover:bg-red-100 transition-all shadow-xs cursor-pointer"
-                      >
-                        <UserX className="w-4 h-4 text-red-600" />
-                        <span>Ban Citizen from Reporting</span>
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {banFeedback && (
-                <div className="mt-3 rounded-lg bg-blue-50 border border-blue-200 p-2.5 text-xs font-bold text-blue-900">
-                  {banFeedback}
-                </div>
-              )}
-
-              {/* Ban Confirmation Modal / Box */}
-              {banModalOpen && (
-                <div className="mt-4 pt-4 border-t border-slate-200">
-                  <div className="rounded-xl border border-red-200 bg-white p-4 shadow-sm space-y-3">
-                    <div className="flex items-start gap-2">
-                      <ShieldAlert className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="text-sm font-extrabold text-red-900">Ban Citizen from Reporting & Commenting</h4>
-                        <p className="text-xs text-slate-600 mt-0.5">
-                          If citizens flagged this issue as fake, prank, or duplicate, banning will reduce their civic score to 0 and block them from submitting further reports or posting comments.
-                        </p>
-                      </div>
-                    </div>
-                    <label className="block text-xs font-bold text-slate-700" htmlFor="ban-reason-input">
-                      Reason for Ban (Visible to citizen & stored on audit record)
-                    </label>
-                    <textarea
-                      id="ban-reason-input"
-                      rows={2}
-                      value={banReason}
-                      onChange={(e) => setBanReason(e.target.value)}
-                      placeholder="e.g. Flagged by community for submitting fake or duplicate civic report."
-                      className="w-full rounded-lg border border-slate-300 p-2 text-xs text-slate-800 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-200"
-                    />
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        type="button"
-                        disabled={banBusy}
-                        onClick={() => setBanModalOpen(false)}
-                        className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        disabled={banBusy}
-                        onClick={() => void handleBanCitizen('BAN')}
-                        className="px-4 py-1.5 rounded-lg bg-red-600 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer shadow-xs"
-                      >
-                        {banBusy ? 'Banning...' : 'Confirm Ban & Set Score to 0'}
-                      </button>
-                    </div>
+            {(() => {
+              const photos = parsePhotoUrls(ticket.initialPhotoUrl);
+              if (!photos.length) return null;
+              return (
+                <div>
+                  <h3 className="mb-2 text-sm font-bold">
+                    Stage 1: Reported Issue ({photos.length} {photos.length === 1 ? 'photo' : 'photos'})
+                  </h3>
+                  <div className="flex flex-wrap gap-3">
+                    {photos.map((src, i) => (
+                      <img
+                        key={i}
+                        src={src}
+                        alt={`Photo ${i + 1} submitted with complaint`}
+                        className="max-h-96 rounded-xl border border-slate-200 object-contain"
+                      />
+                    ))}
                   </div>
                 </div>
-              )}
-            </div>
-            {ticket.initialPhotoUrl && <div><h3 className="mb-2 text-sm font-bold">Stage 1: Reported Issue</h3><img src={ticket.initialPhotoUrl} alt="Photo submitted with the complaint" className="max-h-96 rounded-xl border border-slate-200 object-contain" /></div>}
+              );
+            })()}
             {ticket.resolutionPhotoUrl && <div><h3 className="mb-2 text-sm font-bold">Stage 2: After Repair</h3><img src={ticket.resolutionPhotoUrl} alt="After-repair photo proof" className="max-h-96 rounded-xl border border-slate-200 object-contain" /></div>}
           </section>
 

@@ -48,6 +48,7 @@ export async function GET(
 
     const processedTicket = {
       ...sanitizeTicketForPublic(ticket),
+      reporterUsername: ticket.reporter?.username ?? null,
       reporterCivicScore: ticket.reporter?.civicScore ?? 50,
       reporterIsBanned: Boolean(ticket.reporter?.isBanned),
       reporterDetails: session.user.role === 'AUTHORITY' && ticket.reporter ? {

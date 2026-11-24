@@ -16,18 +16,26 @@ export async function GET(req: NextRequest) {
     let whereCondition: Prisma.TicketWhereInput;
 
     if (isAuthority) {
-      // For Authority: return tickets where this authority acted in status history,
-      // or tickets filed by them
-      whereCondition = {
-        OR: [
-          {
-            statusHistory: {
-              some: {
-                actorId: session.user.id,
-              },
+      // For Authority: settlements are strictly resolved or closed complaints
+      // handled by this authority or within their municipal jurisdiction
+      const authorityConditions: Prisma.TicketWhereInput[] = [
+        {
+          statusHistory: {
+            some: {
+              actorId: session.user.id,
             },
           },
-          { reporterId: session.user.id },
+        },
+      ];
+
+      if (session.user.cityId) {
+        authorityConditions.push({ cityId: session.user.cityId });
+      }
+
+      whereCondition = {
+        AND: [
+          { status: { in: ['RESOLVED', 'CLOSED'] } },
+          { OR: authorityConditions },
         ],
       };
     } else {

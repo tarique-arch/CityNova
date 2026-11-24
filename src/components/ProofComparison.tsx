@@ -15,6 +15,7 @@ import {
   MessageSquare,
   X,
 } from 'lucide-react';
+import { parsePhotoUrls } from '@/lib/photos';
 
 interface ProofComparisonProps {
   ticketId: string;
@@ -51,6 +52,9 @@ export default function ProofComparison({
   const [disputeInput, setDisputeInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const initialPhotos = parsePhotoUrls(initialPhotoUrl);
+  const [activeInitialPhotoIndex, setActiveInitialPhotoIndex] = useState(0);
+  const currentInitialPhoto = initialPhotos[activeInitialPhotoIndex] || initialPhotos[0] || null;
 
   useEffect(() => {
     setMounted(true);
@@ -158,9 +162,9 @@ export default function ProofComparison({
           </div>
 
           <div className="relative aspect-video rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner">
-            {initialPhotoUrl ? (
+            {currentInitialPhoto ? (
               <img
-                src={initialPhotoUrl}
+                src={currentInitialPhoto}
                 alt="Initial civic issue condition"
                 className="w-full h-full object-cover"
               />
@@ -171,9 +175,28 @@ export default function ProofComparison({
               </div>
             )}
             <div className="absolute top-2 left-2 bg-slate-900/85 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-xs">
-              BEFORE
+              BEFORE {initialPhotos.length > 1 ? `(${activeInitialPhotoIndex + 1}/${initialPhotos.length})` : ''}
             </div>
           </div>
+          {initialPhotos.length > 1 && (
+            <div className="flex items-center gap-1.5 pt-1 overflow-x-auto">
+              {initialPhotos.map((p, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setActiveInitialPhotoIndex(idx)}
+                  className={`relative w-12 h-12 rounded-lg overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
+                    activeInitialPhotoIndex === idx
+                      ? 'border-blue-600 ring-2 ring-blue-100 shadow-xs'
+                      : 'border-slate-200 opacity-60 hover:opacity-100'
+                  }`}
+                  title={`View photo ${idx + 1}`}
+                >
+                  <img src={p} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Resolution / After Photo */}
@@ -335,8 +358,8 @@ export default function ProofComparison({
               <div className="space-y-1">
                 <span className="text-[11px] font-bold text-slate-700">Before Repair</span>
                 <div className="aspect-video rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative">
-                  {initialPhotoUrl ? (
-                    <img src={initialPhotoUrl} alt="Before" className="w-full h-full object-cover" />
+                  {currentInitialPhoto ? (
+                    <img src={currentInitialPhoto} alt="Before" className="w-full h-full object-cover" />
                   ) : (
                     <div className="flex items-center justify-center h-full text-slate-400 text-xs">No initial photo</div>
                   )}
