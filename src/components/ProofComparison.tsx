@@ -44,7 +44,7 @@ export default function ProofComparison({
   disputeReason,
   onVerify,
   onDispute,
-  isCitizenUser = true,
+  isCitizenUser = false,
 }: ProofComparisonProps) {
   const [showSignOffModal, setShowSignOffModal] = useState(false);
   const [signOffComment, setSignOffComment] = useState('');
@@ -278,8 +278,8 @@ export default function ProofComparison({
         </div>
       )}
 
-      {/* Citizen Action Bar */}
-      {isProvisionallyResolved && (
+      {/* Citizen Action Bar - Only visible to the reporting citizen */}
+      {isProvisionallyResolved && isCitizenUser && (
         <div className="bg-orange-50/90 p-5 rounded-2xl border-2 border-orange-200/90 shadow-xs space-y-3.5">
           <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
             <FileCheck className="w-4 h-4 text-orange-600 shrink-0" />
@@ -311,7 +311,7 @@ export default function ProofComparison({
       )}
 
       {/* Citizen Sign-Off & Verification Modal */}
-      {showSignOffModal && renderModal(
+      {isCitizenUser && showSignOffModal && renderModal(
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/65 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-150"
           onMouseDown={(e) => {
@@ -425,7 +425,7 @@ export default function ProofComparison({
       )}
 
       {/* Citizen Dispute & Comment Modal */}
-      {showDisputeModal && renderModal(
+      {isCitizenUser && showDisputeModal && renderModal(
         <div
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/65 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-150"
           onMouseDown={(e) => {

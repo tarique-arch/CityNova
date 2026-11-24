@@ -27,8 +27,8 @@ export default function Navbar() {
       <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md shadow-xs border-b border-slate-200">
         <div className="tricolor-bar w-full" />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-3 group shrink-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 relative flex items-center justify-between gap-4">
+          <Link href="/" className="flex items-center gap-3 group shrink-0 z-10">
             <div className="w-10 h-10 rounded-xl bg-slate-950 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform shrink-0 overflow-hidden">
               <Image
                 src="/citynova-icon.png"
@@ -62,7 +62,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
+          <nav className="hidden lg:flex items-center gap-1 xl:gap-2 absolute left-1/2 -translate-x-1/2">
             <Link
               href="/"
               className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-xs border hover:scale-105 ${
@@ -118,7 +118,7 @@ export default function Navbar() {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-2 sm:gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5 z-10">
             <button type="button" onClick={() => void logout()} className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50" title="Sign out">
               <LogOut className="h-3.5 w-3.5" /> Sign out
             </button>

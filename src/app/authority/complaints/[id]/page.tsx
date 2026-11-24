@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { FormEvent, Suspense, useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, MapPin, Upload, Check } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -29,6 +29,8 @@ const STATUS_STEPS = [
 function AuthorityComplaintContent() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromParam = searchParams?.get('from') || '';
   const { user, loading: authLoading } = useAuth();
   const [ticket, setTicket] = useState<any>(null);
   const [status, setStatus] = useState('');
@@ -99,7 +101,26 @@ function AuthorityComplaintContent() {
     <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900">
       <Navbar />
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-6 px-4 py-8 sm:px-6">
-        <Link href="/posts" className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-blue-700"><ArrowLeft className="h-4 w-4" />Back to Posts</Link>
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== 'undefined' && window.history.length > 1) {
+              router.back();
+              return;
+            }
+            if (fromParam === 'profile') {
+              router.push('/profile');
+            } else if (fromParam === 'home') {
+              router.push('/home');
+            } else {
+              router.push('/posts');
+            }
+          }}
+          className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-blue-700 cursor-pointer"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>{fromParam === 'profile' ? 'Back to Profile' : fromParam === 'home' ? 'Back to Home' : 'Back to Posts'}</span>
+        </button>
         {loading ? <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Loading complaint...</div> : !ticket ? (
           <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">{error || 'Complaint not found.'}</div>
         ) : <>

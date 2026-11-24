@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import React, { useEffect, useState, Suspense } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -36,8 +36,34 @@ const STATUS_STEPS = [
 
 function TicketDetailContent() {
   const params = useParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromParam = searchParams?.get('from') || '';
   const { user } = useAuth();
   const id = params?.id as string;
+
+  const handleBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    if (fromParam === 'profile') {
+      router.push('/profile');
+    } else if (fromParam === 'home') {
+      router.push('/home');
+    } else {
+      router.push('/posts');
+    }
+  };
+
+  const backLabel =
+    fromParam === 'profile'
+      ? 'Back to My Complaints'
+      : fromParam === 'home'
+      ? 'Back to Home'
+      : fromParam === 'posts'
+      ? 'Back to Community Posts'
+      : 'Back';
 
   const [ticket, setTicket] = useState<any>(null);
   const [civicMemory, setCivicMemory] = useState<any[]>([]);
@@ -170,13 +196,15 @@ function TicketDetailContent() {
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-8 space-y-6">
         {/* Back Link */}
         <div>
-          <Link
-            href="/posts"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-blue-700 transition-colors"
+          <button
+            type="button"
+            onClick={handleBack}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-blue-700 transition-colors cursor-pointer"
+            title={backLabel}
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to city reports
-          </Link>
+            <span>{backLabel}</span>
+          </button>
         </div>
 
         {/* 4-Stage Resolution Stepper */}

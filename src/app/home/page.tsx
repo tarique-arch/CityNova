@@ -659,7 +659,7 @@ export default function HomePage() {
                                   #{ticket.caseId}
                                 </span>
                                 <Link
-                                  href={`/ticket/${ticket.caseId}`}
+                                  href={`/ticket/${ticket.caseId}?from=home`}
                                   className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors shadow-2xs"
                                 >
                                   <span>View Docket</span>

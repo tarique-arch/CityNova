@@ -38,9 +38,9 @@ export const translations = {
     kok: 'City services and complaint tracking',
   },
   nav_report: {
-    en: '+ Report Problem',
-    hi: '+ Report Problem',
-    kok: '+ Report Problem',
+    en: 'Report Problem',
+    hi: 'Report Problem',
+    kok: 'Report Problem',
   },
   nav_ai_assistant: {
     en: 'CityNova Enquiry',
@@ -85,9 +85,9 @@ export const translations = {
     kok: 'Reset Filter',
   },
   btn_report_problem: {
-    en: '+ Report Civic Problem',
-    hi: '+ Report Civic Problem',
-    kok: '+ Report Civic Problem',
+    en: 'Report Civic Problem',
+    hi: 'Report Civic Problem',
+    kok: 'Report Civic Problem',
   },
   btn_ask_copilot: {
     en: 'Ask CityNova Enquiry',

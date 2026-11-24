@@ -29,17 +29,23 @@ export async function PATCH(
       return NextResponse.json({ error: 'Civic ticket not found' }, { status: 404 });
     }
 
-    const isCitizen = session.user.role === 'CITIZEN';
-    const isReporter = ticket.reporterId === session.user.id;
-    const isAuthority = session.user.role === 'AUTHORITY';
+    const isReporter = Boolean(
+      ticket.reporterId &&
+      session.user?.id &&
+      session.user.role === 'CITIZEN' &&
+      ticket.reporterId === session.user.id
+    );
 
-    if (!isCitizen && !isReporter && !isAuthority) {
-      return NextResponse.json({ error: 'Please sign in to update or dispute the resolution review.' }, { status: 403 });
+    if (!isReporter) {
+      return NextResponse.json(
+        { error: 'Only the citizen who reported this grievance can sign off or dispute the resolution.' },
+        { status: 403 }
+      );
     }
 
     const actorDisplayName = session.user.username
       ? `@${session.user.username}`
-      : session.user.name || (isAuthority ? 'Authority Official' : 'Citizen');
+      : session.user.name || 'Citizen';
 
     if (action === 'VERIFY') {
       if (ticket.status !== 'PROVISIONALLY_RESOLVED') {

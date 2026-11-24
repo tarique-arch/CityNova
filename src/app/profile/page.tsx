@@ -97,6 +97,35 @@ export default function ProfilePage() {
   const [copiedCaseId, setCopiedCaseId] = useState<string | null>(null);
   const [sharedTicketId, setSharedTicketId] = useState<string | null>(null);
 
+  // Delete Ticket State
+  const [activeMenuTicketId, setActiveMenuTicketId] = useState<string | null>(null);
+  const [ticketToDelete, setTicketToDelete] = useState<UserTicket | null>(null);
+  const [isDeletingTicket, setIsDeletingTicket] = useState(false);
+  const [deleteTicketSuccess, setDeleteTicketSuccess] = useState('');
+
+  const handleDeleteTicket = async () => {
+    if (!ticketToDelete) return;
+    setIsDeletingTicket(true);
+    try {
+      const res = await fetch(`/api/tickets/${ticketToDelete.id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete complaint.');
+      }
+      setTickets((current) => current.filter((t) => t.id !== ticketToDelete.id));
+      setTicketToDelete(null);
+      setDeleteTicketSuccess('Complaint deleted successfully.');
+      setTimeout(() => setDeleteTicketSuccess(''), 3000);
+      void refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete complaint.');
+    } finally {
+      setIsDeletingTicket(false);
+    }
+  };
+
   // Saved Posts State
   const [savedPosts, setSavedPosts] = useState<SavedPost[]>([]);
   const [savedLoading, setSavedLoading] = useState(true);
@@ -1140,15 +1169,70 @@ export default function ProfilePage() {
                             {ticket.category}
                           </span>
                         </div>
-                        <div>{getStatusBadge(ticket.status)}</div>
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(ticket.status)}
+
+                          {!isAuthority && (
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setActiveMenuTicketId(activeMenuTicketId === ticket.id ? null : ticket.id);
+                                }}
+                                className="w-7 h-7 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors cursor-pointer shadow-2xs"
+                                title="Complaint options"
+                                aria-label="Complaint options"
+                              >
+                                <MoreVertical className="w-3.5 h-3.5" />
+                              </button>
+
+                              {activeMenuTicketId === ticket.id && (
+                                <>
+                                  <div
+                                    className="fixed inset-0 z-20 cursor-default"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setActiveMenuTicketId(null);
+                                    }}
+                                  />
+                                  <div className="absolute right-0 mt-1.5 w-40 rounded-xl border border-slate-200 bg-white p-1 shadow-xl z-30 animate-in fade-in zoom-in-95">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setActiveMenuTicketId(null);
+                                        setTicketToDelete(ticket);
+                                      }}
+                                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-xs font-bold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                      <span>Delete Complaint</span>
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
 
-                      <div>
-                        <h3 className="text-lg font-black text-slate-900">{ticket.title}</h3>
+                      {/* Clickable Complaint Content: Click anywhere to open the docket in one click */}
+                      <Link
+                        href={isAuthority ? `/authority/complaints/${ticket.caseId}?from=profile` : `/ticket/${ticket.caseId}?from=profile`}
+                        className="block group cursor-pointer space-y-1"
+                        title="Click to open grievance docket"
+                      >
+                        <h3 className="text-lg font-black text-slate-900 group-hover:text-blue-600 transition-colors">
+                          {ticket.title}
+                        </h3>
                         <p className="mt-1 text-sm text-slate-600 whitespace-pre-wrap leading-relaxed line-clamp-3">
                           {ticket.description}
                         </p>
-                      </div>
+                      </Link>
 
                       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs text-slate-500">
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
@@ -1209,20 +1293,13 @@ export default function ProfilePage() {
                           )}
                           {ticket.status === 'PROVISIONALLY_RESOLVED' && (
                             <Link
-                              href={`/ticket/${ticket.caseId}`}
+                              href={`/ticket/${ticket.caseId}?from=profile`}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-xs animate-pulse"
                             >
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               <span>Inspect &amp; Verify</span>
                             </Link>
                           )}
-                          <Link
-                            href={`/ticket/${ticket.caseId}`}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition-transform hover:scale-102"
-                          >
-                            <span>View Public Docket</span>
-                            <ExternalLink className="w-3.5 h-3.5 text-teal-400" />
-                          </Link>
                         </div>
                       </div>
                     </article>
@@ -1333,7 +1410,7 @@ export default function ProfilePage() {
 
                         <div className="flex items-center gap-2">
                           <Link
-                            href={`/ticket/${post.caseId}`}
+                            href={`/ticket/${post.caseId}?from=profile`}
                             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs shadow-xs transition-transform hover:scale-102"
                           >
                             <span>View Complaint</span>
@@ -1711,6 +1788,54 @@ export default function ProfilePage() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Modal: Confirm Delete Complaint */}
+        {ticketToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs animate-in fade-in duration-150">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 space-y-4">
+              <div className="flex items-center gap-3 text-red-600">
+                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+                  <Trash2 className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">Delete Complaint</h3>
+                  <p className="text-xs text-slate-500 font-medium">Case ID: {ticketToDelete.caseId}</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Are you sure you want to delete this complaint docket? This will permanently remove the complaint and all associated status updates and comments. This action cannot be undone.
+              </p>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setTicketToDelete(null)}
+                  disabled={isDeletingTicket}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteTicket()}
+                  disabled={isDeletingTicket}
+                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                >
+                  {isDeletingTicket ? 'Deleting...' : 'Delete Complaint'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Toast Notification */}
+        {deleteTicketSuccess && (
+          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-slate-900 text-white px-4 py-3 text-xs font-bold shadow-xl animate-in slide-in-from-bottom-3 duration-200">
+            <Check className="w-4 h-4 text-emerald-400" />
+            <span>{deleteTicketSuccess}</span>
           </div>
         )}
       </main>
